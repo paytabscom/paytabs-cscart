@@ -1,5 +1,7 @@
 <?php
 
+define('PAYTABS_PAYPAGE_VERSION', '1.0.1');
+define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
 
@@ -14,6 +16,13 @@ if ($payment_completed) {
 
 
 //
+
+function paytabs_error_log($message)
+{
+    $_prefix = date('c') . ' [PayTabs (2)]: ';
+    error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
+}
+
 
 function paymentPrepare($processor_data, $order_info, $order_id)
 {
@@ -72,6 +81,9 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     $success = isset($paypage->redirect_url) && $paypage->redirect_url != '';
 
+    $_logPaypage = json_encode($paypage);
+    paytabs_error_log("Create paypage result: {$_logPaypage}");
+
     if ($success) {
 
         $url = $paypage->redirect_url;
@@ -98,6 +110,9 @@ function paymentComplete()
 
     if (!key_exists('tranRef', $_POST)) {
         //Not post or payment_reference not posted then error
+
+        paytabs_error_log("Callback failed for Order {$order_id}, [tranRef] not defined");
+
         fn_order_placement_routines('route', $order_id);
         return;
     }
@@ -114,14 +129,18 @@ function paymentComplete()
     // Verify payment
 
     $response_data = $paytabs_api->verify_payment($payment_ref);
+    $_logVerify = json_encode($response_data);
 
     if ($response_data->cart_id != $order_id) {
+        paytabs_error_log("Callback failed for Order {$order_id}, Order mismatch [{$_logVerify}]");
         return;
     }
 
     $paymentDone = $response_data && $response_data->payment_result;
 
     if (!$paymentDone) {
+        paytabs_error_log("Callback failed for Order {$order_id}, response [{$_logVerify}]");
+
         //show the error message
         $msg = $response_data->message;
         $pp_response['order_status'] = 'F';
@@ -144,6 +163,8 @@ function paymentComplete()
             fn_finish_payment($order_id, $pp_response, true);
         }
     } else {
+        paytabs_error_log("Callback failed for Order {$order_id}, response [{$_logVerify}]");
+
         //show the error message
         $pp_response['order_status'] = 'F';
         $pp_response['errorcode'] = $payment_result->response_status;
