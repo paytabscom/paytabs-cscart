@@ -8,16 +8,9 @@
 </div>
 
 <div class="control-group">
-    <label class="control-label" for="merchant_email">Merchant Email:</label>
+    <label class="control-label" for="server_key">Server Key:</label>
     <div class="controls">
-        <input type="email" name="payment_data[processor_params][merchant_email]" id="merchant_email" value="{$processor_params.merchant_email}" size="60">
-    </div>
-</div>
-
-<div class="control-group">
-    <label class="control-label" for="secret_key">Secret Key:</label>
-    <div class="controls">
-        <input type="text" name="payment_data[processor_params][secret_key]" id="secret_key" value="{$processor_params.secret_key}" size="60">
+        <input type="text" name="payment_data[processor_params][server_key]" id="server_key" value="{$processor_params.server_key}" size="60">
     </div>
 </div>
 
