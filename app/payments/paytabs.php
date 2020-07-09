@@ -3,7 +3,7 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '1.0.1');
+define('PAYTABS_PAYPAGE_VERSION', '1.0.2');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
@@ -43,32 +43,60 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         return $p['product'] . " ({$p['amount']})";
     }, $products));
 
+    $currency = $order_info["secondary_currency"];
 
-    $firstname = $order_info['firstname'];
-    $lastname = $order_info['lastname'];
+    $firstname = $order_info['b_firstname'];
+    $lastname = $order_info['b_lastname'];
     $address = $order_info['b_address'] . ' ' . $order_info['b_address_2'];
     $city = $order_info['b_city'];
     $state = $order_info['b_state'];
     $country = $order_info['b_country'];
-    // $zipcode = $order_info['b_zipcode'];
-    // $phone = $order_info['b_phone'];
+    $zipcode = $order_info['b_zipcode'];
+    $phone = $order_info['b_phone'];
     $email = $order_info['email'];
     $ip_address = $order_info['ip_address'];
 
+    $s_firstname = $order_info['s_firstname'];
+    $s_lastname = $order_info['s_lastname'];
+    $s_address = $order_info['s_address'] . ' ' . $order_info['s_address_2'];
+    $s_city = $order_info['s_city'];
+    $s_state = $order_info['s_state'];
+    $s_country = $order_info['s_country'];
+    $s_zipcode = $order_info['s_zipcode'];
+    $s_phone = $order_info['s_phone'];
+
+    $lang_code = $order_info['lang_code'];
+
     $pt_holder = new PaytabsHolder2();
-    $pt_holder->set01PaymentCode('card')
+    $pt_holder
+        ->set01PaymentCode('card')
         ->set02Transaction('sale', 'ecom')
-        ->set03Cart($order_id, CART_SECONDARY_CURRENCY, $total, $products_str)
+        ->set03Cart($order_id, $currency, $total, $products_str)
         ->set04CustomerDetails(
             "{$firstname} {$lastname}",
             $email,
+            $phone,
             $address,
             $city,
             $state,
             $country,
+            $zipcode,
             $ip_address
-        )->set05URLs($return_url, null)
-        ->set06HideShipping(false);
+        )
+        ->set05ShippingDetails(
+            "{$s_firstname} {$s_lastname}",
+            null,
+            $s_phone,
+            $s_address,
+            $s_city,
+            $s_state,
+            $s_country,
+            $s_zipcode,
+            null
+        )
+        ->set06HideShipping(false)
+        ->set07URLs($return_url, null)
+        ->set08Lang($lang_code);
 
     $post_data = $pt_holder->pt_build();
 

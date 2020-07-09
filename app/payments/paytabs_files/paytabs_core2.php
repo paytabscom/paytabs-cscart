@@ -2,7 +2,7 @@
 
 /**
  * PayTabs 2 PHP SDK
- * Version: 1.0.1
+ * Version: 1.0.2
  * 
  * Features:
  *  1- Create paypage
@@ -15,7 +15,9 @@
  *  2- Refund transactions
  */
 
-if (!defined('BOOTSTRAP')) { die('Access denied'); }
+if (!defined('BOOTSTRAP')) {
+    die('Access denied');
+}
 
 class PaytabsHelper
 {
@@ -121,6 +123,11 @@ class PaytabsHelper
         if (empty(preg_replace('/[\W]/', '', $string))) {
             $string .= 'NA';
         }
+    }
+
+    static function pt_fillIP(&$string)
+    {
+        $string = $_SERVER['REMOTE_ADDR'];
     }
 
     public static function log($msg, $severity = 1)
@@ -703,13 +710,28 @@ class PaytabsHolder2
     /**
      * name
      * email
+     * phone
      * street1
      * city
      * state
      * country
+     * zip
      * ip
      */
     private $customer_details;
+
+    /**
+     * name
+     * email
+     * phone
+     * street1
+     * city
+     * state
+     * country
+     * zip
+     * ip
+     */
+    private $shipping_details;
 
     /**
      * hide_shipping
@@ -730,6 +752,11 @@ class PaytabsHolder2
      */
     private $urls;
 
+    /**
+     * paypage_lang
+     */
+    private $lang;
+
 
     //
 
@@ -742,22 +769,74 @@ class PaytabsHolder2
             $this->payment_code,
             $this->transaction,
             $this->cart,
-            $this->urls,
-
-            $this->customer_details
+            $this->urls
         );
 
-        if ($this->hide_shipping) {
-            $all = array_merge($all, $this->hide_shipping);
-        }
+        $this->pt_merges(
+            $all,
+            [
+                $this->customer_details,
+                $this->shipping_details,
+                $this->hide_shipping,
+                $this->lang
+            ]
+        );
 
         return $all;
+    }
+
+    private function pt_merges(&$all, $params)
+    {
+        foreach ($params as $param) {
+            $this->pt_merge($all, $param);
+        }
+    }
+
+    private function pt_merge(&$all, $param)
+    {
+        if ($param) {
+            $all = array_merge($all, $param);
+        }
     }
 
     private function _fill(&$var, ...$options)
     {
         $var = trim($var);
         $var = PaytabsHelper::getNonEmpty($var, ...$options);
+    }
+
+    private function setCustomerDetails($name, $email, $phone, $address, $city, $state, $country, $zip, $ip)
+    {
+        // PaytabsHelper::pt_fillIfEmpty($name);
+        // $this->_fill($address, 'NA');
+
+        // PaytabsHelper::pt_fillIfEmpty($city);
+
+        // $this->_fill($state, $city, 'NA');
+
+        if ($zip) {
+            $zip = PaytabsHelper::convertAr2En($zip);
+        }
+
+        if (!$ip) {
+            PaytabsHelper::pt_fillIP($ip);
+        }
+
+        //
+
+        $info =  [
+            'name'    => $name,
+            'email'   => $email,
+            'phone'   => $phone,
+            'street1' => $address,
+            'city'    => $city,
+            'state'   => $state,
+            'country' => $country,
+            'zip'     => $zip,
+            'ip'      => $ip
+        ];
+
+        return $info;
     }
 
     //
@@ -791,40 +870,27 @@ class PaytabsHolder2
         return $this;
     }
 
-    public function set04CustomerDetails($name, $email, $street1, $city, $state, $country, $ip)
+    public function set04CustomerDetails($name, $email, $phone, $address, $city, $state, $country, $zip, $ip)
     {
-        PaytabsHelper::pt_fillIfEmpty($name);
-        $this->_fill($address, 'NA');
-
-        PaytabsHelper::pt_fillIfEmpty($city);
-
-        $this->_fill($state, $city, 'NA');
-
-        if (!$ip) {
-            $ip = $_SERVER['REMOTE_ADDR'];
-        }
+        $infos = $this->setCustomerDetails($name, $email, $phone, $address, $city, $state, $country, $zip, $ip);
 
         //
 
-        $this->customer_details =
-            ['customer_details' => [
-                'name'    => $name,
-                'email'   => $email,
-                'street1' => $street1,
-                'city'    => $city,
-                'state'   => $state,
-                'country' => $country,
-                'ip'      => $ip
-            ]];
+        $this->customer_details = [
+            'customer_details' => $infos
+        ];
 
         return $this;
     }
 
-    public function set05URLs($return_url, $callback_url)
+    public function set05ShippingDetails($name, $email, $phone, $address, $city, $state, $country, $zip, $ip)
     {
-        $this->urls = [
-            'return'   => $return_url,
-            'callback' => $callback_url,
+        $infos = $this->setCustomerDetails($name, $email, $phone, $address, $city, $state, $country, $zip, $ip);
+
+        //
+
+        $this->shipping_details = [
+            'shipping_details' => $infos
         ];
 
         return $this;
@@ -834,6 +900,25 @@ class PaytabsHolder2
     {
         $this->hide_shipping = [
             'hide_shipping' => $on,
+        ];
+
+        return $this;
+    }
+
+    public function set07URLs($return_url, $callback_url)
+    {
+        $this->urls = [
+            'return'   => $return_url,
+            'callback' => $callback_url,
+        ];
+
+        return $this;
+    }
+
+    public function set08Lang($lang_code)
+    {
+        $this->lang = [
+            'paypage_lang' => $lang_code
         ];
 
         return $this;
