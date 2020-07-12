@@ -1,8 +1,12 @@
 <?php
 
+if (!defined('BOOTSTRAP')) {
+    die('Access denied');
+}
+
 /**
  * PayTabs 2 PHP SDK
- * Version: 1.0.2
+ * Version: 1.0.3
  * 
  * Features:
  *  1- Create paypage
@@ -15,9 +19,6 @@
  *  2- Refund transactions
  */
 
-if (!defined('BOOTSTRAP')) {
-    die('Access denied');
-}
 
 class PaytabsHelper
 {
@@ -60,13 +61,14 @@ class PaytabsHelper
 
     /**
      * @return the first non-empty var from the vars list
+     * @return null if all params are empty
      */
     public static function getNonEmpty(...$vars)
     {
         foreach ($vars as $var) {
             if (!empty($var)) return $var;
         }
-        return false;
+        return null;
     }
 
     /**
@@ -774,28 +776,21 @@ class PaytabsHolder2
 
         $this->pt_merges(
             $all,
-            [
-                $this->customer_details,
-                $this->shipping_details,
-                $this->hide_shipping,
-                $this->lang
-            ]
+            $this->customer_details,
+            $this->shipping_details,
+            $this->hide_shipping,
+            $this->lang
         );
 
         return $all;
     }
 
-    private function pt_merges(&$all, $params)
+    private function pt_merges(&$all, ...$arrays)
     {
-        foreach ($params as $param) {
-            $this->pt_merge($all, $param);
-        }
-    }
-
-    private function pt_merge(&$all, $param)
-    {
-        if ($param) {
-            $all = array_merge($all, $param);
+        foreach ($arrays as $array) {
+            if ($array) {
+                $all = array_merge($all, $array);
+            }
         }
     }
 
