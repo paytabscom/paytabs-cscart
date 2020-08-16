@@ -15,7 +15,7 @@ Please follow the below steps
 
 3. Login to your CS Cart admin panel and add New Payment Method, put "PayTabs" in the Name field, select PayTabs from the Processor list, use the provided 'paytabs_logo.png' as the Icon and click Create
 
-4. Edit the newly added Payment Method and navigate to the Configure tab and supply your PayTabs Secret Key
+4. Edit the newly added Payment Method and navigate to the Configure tab and supply your PayTabs Credentials
 
 NOTE:
 -----
