@@ -3,7 +3,7 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '1.0.3');
+define('PAYTABS_PAYPAGE_VERSION', '1.1.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
@@ -117,7 +117,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
         fn_finish_payment($order_id, $pp_response, false);
         fn_set_notification('E', __('warning'), $message, true, '');
-        fn_order_placement_routines($order_id);
+        fn_order_placement_routines('route', $order_id, false);
         die;
     }
 }
@@ -202,9 +202,10 @@ class PaytabsAdapter
     {
         $paytabs_admin = $processor_data["processor_params"];
 
+        $endpoint = $paytabs_admin['endpoint'];
         $profile_id = intval($paytabs_admin['profile_id']);
         $serverKey = $paytabs_admin['server_key'];
 
-        return PaytabsApi::getInstance($profile_id, $serverKey);
+        return PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
     }
 }
