@@ -30,7 +30,7 @@ REPLACE INTO cscart_payment_processors
 
 - - -
 
-### NOTE
+### Note
 
 Clear cache from `var\cache\templates\backend`​ before reinstalling the plugin.​
 
