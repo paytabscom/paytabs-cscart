@@ -38,7 +38,7 @@ Clear cache from `var\cache\templates\backend`​ before reinstalling the plugin
 
 ## Log Access
 
-### PayTabs custome log
+### PayTabs custom log
 
 1. Access `debug_paytabs.log` file found at: `/var/debug_paytabs.log`
 
