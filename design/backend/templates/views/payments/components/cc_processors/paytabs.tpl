@@ -10,7 +10,7 @@
             <option value="JOR">Jordan</option>
             <option value="EGY">Egypt</option>
             <option value="GLOBAL">Global</option>
-            <option value="DEMO">Demo</option>
+            <!-- <option value="DEMO">Demo</option> -->
         </select>
     </div>
 </div>

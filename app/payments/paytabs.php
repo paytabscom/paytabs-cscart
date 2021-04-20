@@ -3,7 +3,7 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '1.1.0');
+define('PAYTABS_PAYPAGE_VERSION', '2.0.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
@@ -67,10 +67,10 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     $lang_code = $order_info['lang_code'];
 
-    $pt_holder = new PaytabsHolder2();
+    $pt_holder = new PaytabsRequestHolder();
     $pt_holder
-        ->set01PaymentCode('card')
-        ->set02Transaction('sale', 'ecom')
+        ->set01PaymentCode('all')
+        ->set02Transaction(PaytabsEnum::TRAN_TYPE_SALE, PaytabsEnum::TRAN_CLASS_ECOM)
         ->set03Cart($order_id, $currency, $total, $products_str)
         ->set04CustomerDetails(
             "{$firstname} {$lastname}",
@@ -84,6 +84,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
             $ip_address
         )
         ->set05ShippingDetails(
+            false,
             "{$s_firstname} {$s_lastname}",
             null,
             $s_phone,
@@ -96,7 +97,8 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         )
         ->set06HideShipping(false)
         ->set07URLs($return_url, null)
-        ->set08Lang($lang_code);
+        ->set08Lang($lang_code)
+        ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
 
     $post_data = $pt_holder->pt_build();
 
