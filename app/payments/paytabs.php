@@ -8,7 +8,7 @@ define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
 
-require_once(DIR_ROOT . '/app/payments/paytabs_files/paytabs_core2.php');
+require_once(DIR_ROOT . '/app/payments/paytabs_files/paytabs_core.php');
 
 // Return from paytabs spayment server
 $payment_completed = defined('PAYMENT_NOTIFICATION');
