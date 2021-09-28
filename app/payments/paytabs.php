@@ -3,7 +3,7 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '2.0.0');
+define('PAYTABS_PAYPAGE_VERSION', '2.1.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
@@ -69,7 +69,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     $pt_holder = new PaytabsRequestHolder();
     $pt_holder
-        ->set01PaymentCode('all')
+        ->set01PaymentCode('all', false)
         ->set02Transaction(PaytabsEnum::TRAN_TYPE_SALE, PaytabsEnum::TRAN_CLASS_ECOM)
         ->set03Cart($order_id, $currency, $total, $products_str)
         ->set04CustomerDetails(
