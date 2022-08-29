@@ -1,14 +1,16 @@
 <?php
 
-if (!defined('BOOTSTRAP')) {
-    die('Access denied');
-}
 /**
  * PayTabs v2 PHP SDK
- * Version: 2.3.3
+ * Version: 2.8.1
+ * PHP >= 7.0.0
  */
 
-define('PAYTABS_SDK_VERSION', '2.3.3');
+define('PAYTABS_SDK_VERSION', '2.8.1');
+
+define('PAYTABS_DEBUG_FILE_NAME', 'debug_paytabs.log');
+define('PAYTABS_DEBUG_SEVERITY', ['Info', 'Warning', 'Error']);
+define('PAYTABS_PREFIX', 'PayTabs');
 
 
 abstract class PaytabsHelper
@@ -102,6 +104,25 @@ abstract class PaytabsHelper
         return false;
     }
 
+    static function supportIframe($code)
+    {
+        foreach (PaytabsApi::PAYMENT_TYPES as $key => $value) {
+            if ($value['name'] === $code) {
+                return in_array(PaytabsApi::GROUP_IFRAME, $value['groups']);
+            }
+        }
+        return false;
+    }
+
+    //
+
+    static function read_ipn_response()
+    {
+        $response = file_get_contents('php://input');
+        $data = json_decode($response);
+
+        return $data;
+    }
 
     /**
      * @return the first non-empty var from the vars list
@@ -180,6 +201,7 @@ abstract class PaytabsHelper
      * <b>paytabs_error_log<b> should be defined,
      * Main functionality: use the platform logger to log the error messages
      * If not found: create a new log file and log the messages
+     * @param $severity: [1: info, 2: warning, 3: error]
      */
     public static function log($msg, $severity = 1)
     {
@@ -187,9 +209,11 @@ abstract class PaytabsHelper
             paytabs_error_log($msg, $severity);
         } catch (\Throwable $th) {
             try {
-                $_prefix = date('c') . ' PayTabs: ';
+                $severity_str = PAYTABS_DEBUG_SEVERITY[$severity];
+                $_prefix = date('c') . " " . PAYTABS_PREFIX . "{$severity_str}: ";
                 $_msg = ($_prefix . $msg . PHP_EOL);
-                file_put_contents('debug_paytabs.log', $_msg, FILE_APPEND);
+
+                file_put_contents(PAYTABS_DEBUG_FILE_NAME, $_msg, FILE_APPEND);
             } catch (\Throwable $th) {
                 // var_export($th);
             }
@@ -208,7 +232,10 @@ abstract class PaytabsEnum
     const TRAN_TYPE_SALE     = 'sale';
     const TRAN_TYPE_REGISTER = 'register';
 
+    const TRAN_TYPE_PAYMENT_REQUEST = 'payment request';
+
     const TRAN_TYPE_VOID    = 'void';
+    const TRAN_TYPE_RELEASE = 'release';
     const TRAN_TYPE_REFUND  = 'refund';
 
     //
@@ -216,6 +243,16 @@ abstract class PaytabsEnum
     const TRAN_CLASS_ECOM = 'ecom';
     const TRAN_CLASS_MOTO = 'moto';
     const TRAN_CLASS_RECURRING = 'recurring';
+
+    //
+
+    const TRAN_STATUS_Authorised = 'A';
+    const TRAN_STATUS_OnHold     = 'H';
+    const TRAN_STATUS_Pending    = 'P';
+    const TRAN_STATUS_Voided     = 'V';
+    const TRAN_STATUS_Error      = 'E';
+    const TRAN_STATUS_Declined   = 'D';
+    const TRAN_STATUS_Expired    = 'X';
 
     //
 
@@ -238,6 +275,75 @@ abstract class PaytabsEnum
         return strcasecmp($tran_type, PaytabsEnum::TRAN_TYPE_REGISTER) == 0;
     }
 
+    static function TranIsPaymentRequest($tran_type)
+    {
+        return strcasecmp($tran_type, PaytabsEnum::TRAN_TYPE_PAYMENT_REQUEST) == 0;
+    }
+
+    static function TranIsCapture($tran_type)
+    {
+        return strcasecmp($tran_type, PaytabsEnum::TRAN_TYPE_CAPTURE) == 0;
+    }
+
+    static function TranIsVoid($tran_type)
+    {
+        return strcasecmp($tran_type, PaytabsEnum::TRAN_TYPE_VOID) == 0;
+    }
+
+    static function TranIsRelease($tran_type)
+    {
+        return strcasecmp($tran_type, PaytabsEnum::TRAN_TYPE_RELEASE) == 0;
+    }
+
+    static function TranIsRefund($tran_type)
+    {
+        return strcasecmp($tran_type, PaytabsEnum::TRAN_TYPE_REFUND) == 0;
+    }
+
+
+    static function TranIsPaymentComplete($ipn_data)
+    {
+        if ($ipn_data) {
+            $original_trx = @$ipn_data->previous_tran_ref;
+            $tran_type = $ipn_data->tran_type;
+
+            // Sale && previous_tran_ref
+            if (PaytabsEnum::TranIsSale($tran_type) && isset($original_trx)) {
+                return true;
+            }
+
+            // Or Expired
+            $tran_status = @$ipn_data->payment_result->response_status;
+            if ($tran_status  === 'X') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    //
+
+    static function TranStatusIsSuccess($tran_response_status)
+    {
+        return $tran_response_status == PaytabsEnum::TRAN_STATUS_Authorised;
+    }
+
+    static function TranStatusIsOnHold($tran_response_status)
+    {
+        return $tran_response_status == PaytabsEnum::TRAN_STATUS_OnHold;
+    }
+
+    static function TranStatusIsPending($tran_response_status)
+    {
+        return $tran_response_status == PaytabsEnum::TRAN_STATUS_Pending;
+    }
+
+    static function TranStatusIsExpired($tran_response_status)
+    {
+        return $tran_response_status == PaytabsEnum::TRAN_STATUS_Expired;
+    }
+
     //
 
     static function PPIsDuplicate($paypage)
@@ -250,6 +356,10 @@ abstract class PaytabsEnum
 
 /**
  * Holder class: Holds & Generates the parameters array that pass to PayTabs' API
+ * Members:
+ * - Transaction Info (Type & Class)
+ * - Cart Info (id, desc, amount, currency)
+ * - Plugin Info (platform name, platform version, plugin version)
  */
 class PaytabsHolder
 {
@@ -347,8 +457,16 @@ class PaytabsHolder
 /**
  * Holder class, Inherit class PaytabsHolder
  * Holds & Generates the parameters array that pass to PayTabs' API
+ * Members:
+ * - Payment method (payment_code)
+ * - Customer Details
+ * - Shipping Details
+ * - URLs (return & callback)
+ * - Language (paypage_lang)
+ * - Tokenise
+ * - User defined
  */
-class PaytabsRequestHolder extends PaytabsHolder
+abstract class PaytabsBasicHolder extends PaytabsHolder
 {
     /**
      * payment_type
@@ -382,19 +500,6 @@ class PaytabsRequestHolder extends PaytabsHolder
     private $shipping_details;
 
     /**
-     * hide_shipping
-     */
-    private $hide_shipping;
-
-    /**
-     * pan
-     * expiry_month
-     * expiry_year
-     * cvv
-     */
-    private $card_details;
-
-    /**
      * return
      * callback
      */
@@ -406,16 +511,15 @@ class PaytabsRequestHolder extends PaytabsHolder
     private $lang;
 
     /**
-     * framed
-     */
-    private $framed;
-
-    /**
      * tokenise
      * show_save_card
      */
     private $tokenise;
 
+    /**
+     * udf[1-9]
+     */
+    private $user_defined;
 
     //
 
@@ -432,10 +536,9 @@ class PaytabsRequestHolder extends PaytabsHolder
             $this->urls,
             $this->customer_details,
             $this->shipping_details,
-            $this->hide_shipping,
             $this->lang,
-            $this->framed,
-            $this->tokenise
+            $this->tokenise,
+            $this->user_defined
         );
 
         return $all;
@@ -529,14 +632,6 @@ class PaytabsRequestHolder extends PaytabsHolder
         return $this;
     }
 
-    public function set06HideShipping($on = false)
-    {
-        $this->hide_shipping = [
-            'hide_shipping' => $on,
-        ];
-
-        return $this;
-    }
 
     public function set07URLs($return_url, $callback_url)
     {
@@ -548,6 +643,7 @@ class PaytabsRequestHolder extends PaytabsHolder
         return $this;
     }
 
+
     public function set08Lang($lang_code)
     {
         $this->lang = [
@@ -557,19 +653,6 @@ class PaytabsRequestHolder extends PaytabsHolder
         return $this;
     }
 
-    /**
-     * @param string $redirect_target "parent" or "top" or "iframe"
-     */
-    public function set09Framed($on = false, $redirect_target = 'iframe')
-    {
-        $this->framed = [
-            'framed' => $on,
-            'framed_return_parent' => $redirect_target == 'parent',
-            'framed_return_top' => $redirect_target == 'top'
-        ];
-
-        return $this;
-    }
 
     /**
      * @param int $token_format integer between 2 and 6, Set the Token format
@@ -586,12 +669,95 @@ class PaytabsRequestHolder extends PaytabsHolder
 
         return $this;
     }
+
+
+    public function set50UserDefined($udf1, $udf2 = null, $udf3 = null, $udf4 = null, $udf5 = null, $udf6 = null, $udf7 = null, $udf8 = null, $udf9 = null)
+    {
+        $user_defined = [];
+
+        for ($i = 1; $i <= 9; $i++) {
+            $param = "udf$i";
+            if ($$param != null) {
+                $user_defined[$param] = $$param;
+            }
+        }
+
+        $this->user_defined = [
+            'user_defined' => $user_defined
+        ];
+
+        return $this;
+    }
+}
+
+
+/**
+ * Holder class, Inherit class PaytabsBasicHolder
+ * Holds & Generates the parameters array that pass to PayTabs' API
+ * Members:
+ * - Hide shipping
+ * - Framed
+ */
+class PaytabsRequestHolder extends PaytabsBasicHolder
+{
+    /**
+     * hide_shipping
+     */
+    private $hide_shipping;
+
+    /**
+     * framed
+     */
+    private $framed;
+
+    //
+
+    /**
+     * @return array
+     */
+    public function pt_build()
+    {
+        $all = parent::pt_build();
+
+        $this->pt_merges(
+            $all,
+            $this->hide_shipping,
+            $this->framed
+        );
+
+        return $all;
+    }
+
+    public function set06HideShipping(bool $on = false)
+    {
+        $this->hide_shipping = [
+            'hide_shipping' => $on,
+        ];
+
+        return $this;
+    }
+
+    /**
+     * @param string $redirect_target "parent" or "top" or "iframe"
+     */
+    public function set09Framed(bool $on = false, $redirect_target = 'iframe')
+    {
+        $this->framed = [
+            'framed' => $on,
+            'framed_return_parent' => $redirect_target == 'parent',
+            'framed_return_top' => $redirect_target == 'top'
+        ];
+
+        return $this;
+    }
 }
 
 
 /**
  * Holder class, Inherit class PaytabsHolder
  * Holds & Generates the parameters array for the Tokenised payments
+ * Members:
+ * - Token Info (token & tran_ref)
  */
 class PaytabsTokenHolder extends PaytabsHolder
 {
@@ -627,12 +793,95 @@ class PaytabsTokenHolder extends PaytabsHolder
 
 
 /**
+ * Holder class, Inherit class PaytabsBasicHolder
+ * Holds & Generates the parameters array for the Managed form payments
+ * Members:
+ * - Payment token
+ */
+class PaytabsManagedFormHolder extends PaytabsBasicHolder
+{
+    /**
+     * payment_token
+     */
+    private $payment_token;
+
+
+    public function set30PaymentToken($payment_token)
+    {
+        $this->payment_token = [
+            'payment_token' => $payment_token
+        ];
+
+        return $this;
+    }
+
+    public function pt_build()
+    {
+        $all = parent::pt_build();
+
+        $all = array_merge($all, $this->payment_token);
+
+        return $all;
+    }
+}
+
+
+/**
+ * Holder class, Inherit class PaytabsBasicHolder
+ * Holds & Generates the parameters array for the Own form payments
+ * Members:
+ * - Card Info (pan, cvv, expiry_year, expiry_month)
+ */
+class PaytabsOwnFormHolder extends PaytabsBasicHolder
+{
+    /**
+     * pan
+     * cvv
+     * expiry_year
+     * expiry_month
+     */
+    private $card_details;
+
+
+    public function set40CardDetails($pan, $expiry_year, $expiry_month, $cvv = null)
+    {
+        $card_info = [
+            'pan' => $pan,
+            'expiry_year'  => (int) $expiry_year,
+            'expiry_month' => (int) $expiry_month,
+        ];
+
+        if ($cvv) {
+            $card_info['cvv'] = $cvv;
+        }
+
+        $this->card_details = [
+            'card_details' => $card_info
+        ];
+
+        return $this;
+    }
+
+    public function pt_build()
+    {
+        $all = parent::pt_build();
+
+        $all = array_merge($all, $this->card_details);
+
+        return $all;
+    }
+}
+
+
+/**
  * Holder class, Inherit class PaytabsHolder
  * Holder & Generates the parameters array for the Followup requests
  * Followup requests:
  * - Capture (follows Auth)
  * - Void    (follows Auth)
  * - Refund  (follows Capture or Sale)
+ * Members:
+ * - Transaction ID
  */
 class PaytabsFollowupHolder extends PaytabsHolder
 {
@@ -677,26 +926,29 @@ class PaytabsApi
     const GROUP_CARDS_INTERNATIONAL = 'cards_international';
     const GROUP_TOKENIZE = 'tokenise';
     const GROUP_AUTH_CAPTURE = 'auth_capture';
+    const GROUP_IFRAME = 'iframe';
 
     const PAYMENT_TYPES = [
-        '0'  => ['name' => 'all', 'title' => 'PayTabs - All', 'currencies' => null, 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_AUTH_CAPTURE]],
-        '1'  => ['name' => 'stcpay', 'title' => 'PayTabs - StcPay', 'currencies' => ['SAR'], 'groups' => []],
+        '0'  => ['name' => 'all', 'title' => 'PayTabs - All', 'currencies' => null, 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_AUTH_CAPTURE, PaytabsApi::GROUP_IFRAME]],
+        '1'  => ['name' => 'stcpay', 'title' => 'PayTabs - StcPay', 'currencies' => ['SAR'], 'groups' => [PaytabsApi::GROUP_IFRAME]],
         '2'  => ['name' => 'stcpayqr', 'title' => 'PayTabs - StcPay(QR)', 'currencies' => ['SAR'], 'groups' => []],
         '3'  => ['name' => 'applepay', 'title' => 'PayTabs - ApplePay', 'currencies' => ['AED', 'SAR'], 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_AUTH_CAPTURE]],
-        '4'  => ['name' => 'omannet', 'title' => 'PayTabs - OmanNet', 'currencies' => ['OMR'], 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS]],
-        '5'  => ['name' => 'mada', 'title' => 'PayTabs - Mada', 'currencies' => ['SAR'], 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_AUTH_CAPTURE]],
-        '6'  => ['name' => 'creditcard', 'title' => 'PayTabs - CreditCard', 'currencies' => null, 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_CARDS_INTERNATIONAL, PaytabsApi::GROUP_AUTH_CAPTURE]],
+        '4'  => ['name' => 'omannet', 'title' => 'PayTabs - OmanNet', 'currencies' => ['OMR'], 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_IFRAME]],
+        '5'  => ['name' => 'mada', 'title' => 'PayTabs - Mada', 'currencies' => ['SAR'], 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_AUTH_CAPTURE, PaytabsApi::GROUP_IFRAME]],
+        '6'  => ['name' => 'creditcard', 'title' => 'PayTabs - CreditCard', 'currencies' => null, 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_CARDS_INTERNATIONAL, PaytabsApi::GROUP_AUTH_CAPTURE, PaytabsApi::GROUP_IFRAME]],
         '7'  => ['name' => 'sadad', 'title' => 'PayTabs - Sadad', 'currencies' => ['SAR'], 'groups' => []],
-        '8'  => ['name' => 'fawry', 'title' => 'PayTabs - @Fawry', 'currencies' => ['EGP'], 'groups' => []],
+        '8'  => ['name' => 'fawry', 'title' => 'PayTabs - @Fawry', 'currencies' => ['EGP'], 'groups' => [PaytabsApi::GROUP_IFRAME]],
         '9'  => ['name' => 'knet', 'title' => 'PayTabs - KnPay', 'currencies' => ['KWD'], 'groups' => [PaytabsApi::GROUP_CARDS]],
-        '10' => ['name' => 'amex', 'title' => 'PayTabs - Amex', 'currencies' => ['AED', 'SAR'], 'groups' => [PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_CARDS_INTERNATIONAL, PaytabsApi::GROUP_AUTH_CAPTURE]],
-        '11' => ['name' => 'valu', 'title' => 'PayTabs - valU', 'currencies' => ['EGP'], 'groups' => []],
-        '12' => ['name' => 'meeza', 'title' => 'PayTabs - Meeza', 'currencies' => ['EGP'], 'groups' => [PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_AUTH_CAPTURE]],
-        '13' => ['name' => 'meezaqr', 'title' => 'PayTabs - Meeza (QR)', 'currencies' => ['EGP'], 'groups' => []],
+        '10' => ['name' => 'amex', 'title' => 'PayTabs - Amex', 'currencies' => ['AED', 'SAR'], 'groups' => [PaytabsApi::GROUP_TOKENIZE, PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_CARDS_INTERNATIONAL, PaytabsApi::GROUP_AUTH_CAPTURE, PaytabsApi::GROUP_IFRAME]],
+        '11' => ['name' => 'valu', 'title' => 'PayTabs - valU', 'currencies' => ['EGP'], 'groups' => [PaytabsApi::GROUP_IFRAME]],
+        '12' => ['name' => 'meeza', 'title' => 'PayTabs - Meeza', 'currencies' => ['EGP'], 'groups' => [PaytabsApi::GROUP_CARDS, PaytabsApi::GROUP_AUTH_CAPTURE, PaytabsApi::GROUP_IFRAME]],
+        '13' => ['name' => 'meezaqr', 'title' => 'PayTabs - Meeza (QR)', 'currencies' => ['EGP'], 'groups' => [PaytabsApi::GROUP_IFRAME]],
         '14' => ['name' => 'unionpay', 'title' => 'PayTabs - UnionPay', 'currencies' => ['AED'], 'groups' => [PaytabsApi::GROUP_AUTH_CAPTURE]],
         '15' => ['name' => 'samsungpay', 'title' => 'PayTabs - SamsungPay', 'currencies' => ['AED', 'SAR'], 'groups' => []],
         '16' => ['name' => 'knetdebit', 'title' => 'PayTabs - KnPay (Debit)', 'currencies' => ['KWD'], 'groups' => []],
         '17' => ['name' => 'knetcredit', 'title' => 'PayTabs - KnPay (Credit)', 'currencies' => ['KWD'], 'groups' => []],
+        '18' => ['name' => 'aman', 'title' => 'PayTabs - Aman', 'currencies' => ['EGP'], 'groups' => [PaytabsApi::GROUP_IFRAME]],
+        '19' => ['name' => 'urpay', 'title' => 'PayTabs - UrPay', 'currencies' => ['SAR'], 'groups' => [PaytabsApi::GROUP_IFRAME]],
     ];
 
     const BASE_URLS = [
@@ -761,6 +1013,12 @@ class PaytabsApi
         return $endpoints;
     }
 
+    public static function getEndpoint($region)
+    {
+        $endpoint = self::BASE_URLS[$region]['endpoint'];
+        return $endpoint;
+    }
+
     public static function getInstance($region, $merchant_id, $key)
     {
         if (self::$instance == null) {
@@ -790,7 +1048,10 @@ class PaytabsApi
         // $serverIP = getHostByName(getHostName());
         // $values['ip_merchant'] = PaytabsHelper::getNonEmpty($serverIP, $_SERVER['SERVER_ADDR'], 'NA');
 
-        $isTokenize = $values['tran_class'] == PaytabsEnum::TRAN_CLASS_RECURRING;
+        $isTokenize =
+            $values['tran_class'] == PaytabsEnum::TRAN_CLASS_RECURRING
+            || array_key_exists('payment_token', $values)
+            || array_key_exists('card_details', $values);
 
         $response = $this->sendRequest(self::URL_REQUEST, $values);
 
@@ -838,6 +1099,10 @@ class PaytabsApi
 
     function is_valid_redirect($post_values)
     {
+        if (empty($post_values) || !array_key_exists('signature', $post_values)) {
+            return false;
+        }
+
         $serverKey = $this->server_key;
 
         // Request body include a signature post Form URL encoded field
@@ -858,7 +1123,11 @@ class PaytabsApi
 
     function is_valid_ipn($data, $signature, $serverKey = false)
     {
-        $server_key = $serverKey ?? $this->server_key;
+        if ($serverKey) {
+            $server_key = $serverKey;
+        } else {
+            $server_key = $this->server_key;
+        }
 
         return $this->is_genuine($data, $signature, $server_key);
     }
@@ -881,6 +1150,42 @@ class PaytabsApi
 
 
     /** start: Local calls */
+
+    public function read_response($is_ipn)
+    {
+        if ($is_ipn) {
+            // $param_tranRef = 'tran_ref';
+            // $param_cartId = 'cart_id';
+
+            $response = file_get_contents('php://input');
+            $data = json_decode($response);
+
+            $headers = getallheaders();
+            // Lower case all keys
+            $headers = array_change_key_case($headers);
+
+            $signature = $headers['signature'];
+            // $client_key = $headers['Client-Key'];
+
+            $is_valid = $this->is_valid_ipn($response, $signature, false);
+        } else {
+            // $param_tranRef = 'tranRef';
+            // $param_cartId = 'cartId';
+
+            $data = filter_input_array(INPUT_POST);
+
+            $is_valid = $this->is_valid_redirect($data);
+        }
+
+        if (!$is_valid) {
+            PaytabsHelper::log("Paytabs Admin: Invalid Signature", 3);
+            return false;
+        }
+
+        $response_data = $is_ipn ? $this->enhanceVerify($data) : $this->enhanceReturn($data);
+
+        return $response_data;
+    }
 
     /**
      *
@@ -914,15 +1219,60 @@ class PaytabsApi
             $_verify->success = false;
         } else {
             if (isset($verify->payment_result)) {
-                $_verify->success = $verify->payment_result->response_status == "A";
+                $_verify->success = PaytabsEnum::TranStatusIsSuccess($verify->payment_result->response_status);
+                $_verify->is_on_hold = PaytabsEnum::TranStatusIsOnHold($verify->payment_result->response_status);
+                $_verify->is_pending = PaytabsEnum::TranStatusIsPending($verify->payment_result->response_status);
+                $_verify->is_expired = PaytabsEnum::TranStatusIsExpired($verify->payment_result->response_status);
+
+                $_verify->response_code = $verify->payment_result->response_code;
             } else {
                 $_verify->success = false;
             }
             $_verify->message = $verify->payment_result->response_message;
         }
 
+        if (!isset($_verify->is_on_hold)) {
+            $_verify->is_on_hold = false;
+        }
+
+        if (!isset($_verify->is_pending)) {
+            $_verify->is_pending = false;
+        }
+
+        if (!isset($_verify->is_expired)) {
+            $_verify->is_expired = false;
+        }
+
         $_verify->reference_no = @$verify->cart_id;
         $_verify->transaction_id = @$verify->tran_ref;
+
+        return $_verify;
+    }
+
+    public function enhanceReturn($return_data)
+    {
+        $_verify = $return_data;
+
+        if (!$return_data) {
+            $_verify = new stdClass();
+            $_verify->success = false;
+            $_verify->is_on_hold = false;
+            $_verify->is_pending = false;
+            $_verify->message = 'Verifying paytabs payment failed (locally)';
+        } else {
+            $_verify = (object)$return_data;
+
+            $response_status = $return_data['respStatus'];
+
+            $_verify->success = PaytabsEnum::TranStatusIsSuccess($response_status);
+            $_verify->is_on_hold = PaytabsEnum::TranStatusIsOnHold($response_status);
+            $_verify->is_pending = PaytabsEnum::TranStatusIsPending($response_status);
+
+            $_verify->message = $return_data['respMessage'];
+
+            $_verify->transaction_id = $return_data['tranRef'];
+            $_verify->reference_no = $return_data['cartId'];
+        }
 
         return $_verify;
     }
@@ -937,7 +1287,7 @@ class PaytabsApi
             $_refund->message = 'Verifying paytabs Refund failed';
         } else {
             if (isset($refund->payment_result)) {
-                $_refund->success = $refund->payment_result->response_status == "A";
+                $_refund->success = PaytabsEnum::TranStatusIsSuccess($refund->payment_result->response_status);
                 $_refund->message = $refund->payment_result->response_message;
             } else {
                 $_refund->success = false;
