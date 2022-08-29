@@ -31,6 +31,16 @@
 </div>
 
 <div class="control-group">
+    <label class="control-label" for="hide_shipping">Hide Shipping:</label>
+    <div class="controls">
+        <select name="payment_data[processor_params][hide_shipping]" id="hide_shipping" value="{}">
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+        </select>
+    </div>
+</div>
+
+<div class="control-group">
     <label class="control-label" for="order_status_after_payment">Order Status After Payment:</label>
     <div class="controls">
         <select name="payment_data[processor_params][order_status_after_payment]" id="order_status_after_payment" value="{}">
@@ -49,4 +59,5 @@
 <script>
     document.getElementById('endpoint').value = '{$processor_params.endpoint}';
     document.getElementById('order_status_after_payment').value = '{$processor_params.order_status_after_payment}';
+    document.getElementById('hide_shipping').value = '{$processor_params.hide_shipping}';
 </script>

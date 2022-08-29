@@ -33,6 +33,8 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 {
     $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
 
+    $hide_shipping = (bool) PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
+
     $return_url = fn_url("payment_notification?payment=paytabs", AREA, 'current');
 
 
@@ -86,7 +88,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         ->set05ShippingDetails(
             false,
             "{$s_firstname} {$s_lastname}",
-            null,
+            $email,
             $s_phone,
             $s_address,
             $s_city,
@@ -95,7 +97,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
             $s_zipcode,
             null
         )
-        ->set06HideShipping(false)
+        ->set06HideShipping($hide_shipping)
         ->set07URLs($return_url, null)
         ->set08Lang($lang_code)
         ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
@@ -209,5 +211,14 @@ class PaytabsAdapter
         $serverKey = $paytabs_admin['server_key'];
 
         return PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
+    }
+
+    static function getConfig($processor_data, $key)
+    {
+        $paytabs_admin = $processor_data["processor_params"];
+
+        $value = $paytabs_admin[$key];
+
+        return $value;
     }
 }
