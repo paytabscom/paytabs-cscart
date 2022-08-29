@@ -112,7 +112,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     if ($success) {
         $url = $paypage->redirect_url;
-        fn_create_payment_form($url, $post_data, 'PayTabs server', false);
+        fn_create_payment_form($url, [], 'PayTabs server', false, 'get');
     } else {
         // Here Error
         $pp_response["reason_text"] = $message;
