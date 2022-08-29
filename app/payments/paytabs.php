@@ -3,7 +3,7 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '2.1.0');
+define('PAYTABS_PAYPAGE_VERSION', '2.2.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
