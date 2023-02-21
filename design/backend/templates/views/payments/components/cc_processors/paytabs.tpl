@@ -10,6 +10,7 @@
             <option value="JOR">Jordan</option>
             <option value="EGY">Egypt</option>
             <option value="IRQ">Iraq</option>
+            <option value="PSE">Palestine</option>
             <option value="GLOBAL">Global</option>
             <!-- <option value="DEMO">Demo</option> -->
         </select>
