@@ -6,17 +6,9 @@ The official PayTabs CS-Cart Plugin
 
 ## Installation
 
-### Install using FTP method
-
 1. Download the latest release
-2. Copy the files to your root cs-cart folder.
-3. Run the below SQL statement in the corresponding CS Cart database
-
-```sql
-REPLACE INTO cscart_payment_processors 
-(processor_id, processor, processor_script, processor_template, admin_template, callback, type) values
-('1100', 'PayTabs', 'paytabs.php', 'views/orders/components/payments/cc_outside.tpl', 'paytabs.tpl', 'N', 'P');
-```
+2. Navigate to: `CS-Cart admin panel >> Add-ons >> Manage Add-ons >> Manual Installation`
+3. upload the add-on zip file from your local disk and then click on `upload&install `
 
 - - -
 
