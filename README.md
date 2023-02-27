@@ -2,15 +2,25 @@
 
 The official PayTabs CS-Cart Plugin
 
-- - -
+---
 
 ## Installation
 
-1. Download the latest release
-2. Navigate to: `CS-Cart admin panel >> Add-ons >> Manage Add-ons >> Manual Installation`
-3. upload the add-on zip file from your local disk and then click on `upload&install `
+### Install using Add-on method
 
-- - -
+1. Download the latest release
+2. Navigate to: `CS-Cart admin panel >> Add-ons >> Manage Add-ons >> Manual installation`
+3. Select "Local" then select the downloaded the Add-on zip file from your local disk
+4. Click on `Upload & install`
+
+### Install using FTP method
+
+1. Download the latest release
+2. Copy the files to your root cs-cart folder.
+3. Navigate to: `CS-Cart admin panel >> Add-ons >> Manage Add-ons`
+4. Locate `PayTabs` and clik on `Install` button
+
+---
 
 ## Activating the Plugin
 
@@ -20,13 +30,13 @@ The official PayTabs CS-Cart Plugin
 4. Click **Create**
 5. Edit the newly added Payment Method and navigate to the `Configure` tab and supply your PayTabs Credentials
 
-- - -
+---
 
 ### Note
 
-Clear cache from `var\cache\templates\backend`​ before reinstalling the plugin.​
+Clear cache from `var\cache\templates\backend` before reinstalling the plugin.
 
-- - -
+---
 
 ## Log Access
 
@@ -34,6 +44,6 @@ Clear cache from `var\cache\templates\backend`​ before reinstalling the plugin
 
 1. Access `debug_paytabs.log` file found at: `/var/debug_paytabs.log`
 
-- - -
+---
 
 Done

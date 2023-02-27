@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
+
 <addon scheme="3.0" edition_type="ROOT">
     <id>paytabs</id>
-    <version>1.0</version>
+    <version>3.0.0</version>
     <default_language>en</default_language>
     <priority>100</priority>
     <status>active</status>

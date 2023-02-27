@@ -20,6 +20,7 @@ function fn_paytabs_install()
     );
     db_query("INSERT INTO ?:payment_processors ?e", $_data);
 }
+
 function fn_paytabs_uninstall()
 {
     db_query("DELETE FROM ?:payment_processors WHERE processor_script = ?s", "paytabs.php");

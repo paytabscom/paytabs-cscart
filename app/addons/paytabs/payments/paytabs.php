@@ -3,7 +3,7 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '2.3.0');
+define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
@@ -22,9 +22,11 @@ if ($payment_completed) {
 
 //
 
-function paytabs_error_log($message)
+function paytabs_error_log($message, $severity)
 {
-    $_prefix = date('c') . ' [PayTabs (2)]: ';
+    $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
+
+    $_prefix = date('c') . " PayTabs.{$severity_str}: ";
     error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
 }
 
