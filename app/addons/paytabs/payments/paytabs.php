@@ -112,7 +112,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $message = $paypage->message;
 
     $_logPaypage = json_encode($paypage);
-    paytabs_error_log("Create paypage result: {$_logPaypage}");
+    paytabs_error_log("Create paypage result: {$_logPaypage}", 1);
 
     if ($success) {
         $url = $paypage->redirect_url;
@@ -140,7 +140,7 @@ function paymentComplete()
     if (!key_exists($param_paymentRef, $_POST)) {
         //Not post or payment_reference not posted then error
 
-        paytabs_error_log("Callback failed for Order {$order_id}, [tranRef] not defined");
+        paytabs_error_log("Callback failed for Order {$order_id}, [tranRef] not defined", 3);
 
         fn_order_placement_routines('route', $order_id);
         return;
@@ -164,7 +164,7 @@ function paymentComplete()
     $orderId = $verify_response->cart_id;
 
     if ($orderId != $order_id) {
-        paytabs_error_log("Callback failed for Order {$order_id}, Order mismatch [{$_logVerify}]");
+        paytabs_error_log("Callback failed for Order {$order_id}, Order mismatch [{$_logVerify}]", 3);
         return;
     }
 
@@ -179,7 +179,7 @@ function paymentComplete()
             fn_finish_payment($orderId, $pp_response, true);
         }
     } else {
-        paytabs_error_log("Callback failed for Order {$orderId}, response [{$_logVerify}]");
+        paytabs_error_log("Callback failed for Order {$orderId}, response [{$_logVerify}]", 2);
 
         //show the error message
 
