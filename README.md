@@ -13,6 +13,12 @@ The official PayTabs CS-Cart Plugin
 3. Select "Local" then select the downloaded the Add-on zip file from your local disk
 4. Click on `Upload & install`
 
+**Note:**
+
+If the Add-on does not appear or if it is not correctly installed, repeat the Upload step.
+
+This happens sometimes when a previous version exists.
+
 ### Install using FTP method
 
 1. Download the latest release
