@@ -9,6 +9,7 @@ if (!defined('BOOTSTRAP')) {
 function fn_paytabs_install()
 {
     fn_paytabs_uninstall();
+
     $_data = array(
         'processor' => 'PayTabs',
         'processor_script' => 'paytabs.php',
@@ -24,4 +25,10 @@ function fn_paytabs_install()
 function fn_paytabs_uninstall()
 {
     db_query("DELETE FROM ?:payment_processors WHERE processor_script = ?s", "paytabs.php");
+
+    fn_rm(DIR_ROOT . '/design/backend/templates/views/payments/components/cc_processors/paytabs.tpl');
+    fn_rm(DIR_ROOT . '/app/addons/paytabs/addon.xml');
+    fn_rm(DIR_ROOT . '/var/langs/en/addons/paytabs.po');
+    fn_rm(DIR_ROOT . '/paytabs_logo.png');
+    fn_rm(DIR_ROOT . '/README.md');
 }
