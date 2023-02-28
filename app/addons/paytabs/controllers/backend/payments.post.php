@@ -16,7 +16,8 @@ if (!defined('BOOTSTRAP')) {
 
 if ($mode == 'processor') {
 
-    $endpoints = ['a' => 'A', 'b' => 'B'];
+    require_once(DIR_ROOT.'/app/addons/paytabs/payments/paytabs_core.php');
+    $endpoints = PaytabsApi::BASE_URLS;
 
     /** @var \Tygh\SmartyEngine\Core $view */
     $view = Tygh::$app['view'];
