@@ -4,6 +4,9 @@
     <label class="control-label" for="endpoint">Endpoint Region:</label>
     <div class="controls">
         <select name="payment_data[processor_params][endpoint]" id="endpoint" value="{$processor_params.endpoint}">
+            {foreach $endpoints as $k=>$v}
+                <option value="{$k}">{$v}</option>
+            {/foreach}
             <option value="ARE">United Arab Emirates</option>
             <option value="SAU">Saudi Arabia</option>
             <option value="OMN">Oman</option>
