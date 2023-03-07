@@ -5,9 +5,8 @@
     <div class="controls">
         <select name="payment_data[processor_params][endpoint]" id="endpoint" value="{$processor_params.endpoint}">
             {foreach $endpoints as $k=>$v}
-                <option value="{$k}">{$v["title"]}</option>
+                <option value="{$k}">{$v}</option>
             {/foreach}
-           
         </select>
     </div>
 </div>
