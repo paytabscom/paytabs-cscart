@@ -3,12 +3,12 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '2.3.0');
+define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 
 defined('BOOTSTRAP') or die('Access denied');
 
-require_once(DIR_ROOT . '/app/payments/paytabs_files/paytabs_core.php');
+require_once('paytabs_core.php');
 
 // Return from paytabs spayment server
 $payment_completed = defined('PAYMENT_NOTIFICATION');
@@ -22,9 +22,11 @@ if ($payment_completed) {
 
 //
 
-function paytabs_error_log($message)
+function paytabs_error_log($message, $severity)
 {
-    $_prefix = date('c') . ' [PayTabs (2)]: ';
+    $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
+
+    $_prefix = date('c') . " PayTabs.{$severity_str}: ";
     error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
 }
 
@@ -110,7 +112,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $message = $paypage->message;
 
     $_logPaypage = json_encode($paypage);
-    paytabs_error_log("Create paypage result: {$_logPaypage}");
+    paytabs_error_log("Create paypage result: {$_logPaypage}", 1);
 
     if ($success) {
         $url = $paypage->redirect_url;
@@ -138,7 +140,7 @@ function paymentComplete()
     if (!key_exists($param_paymentRef, $_POST)) {
         //Not post or payment_reference not posted then error
 
-        paytabs_error_log("Callback failed for Order {$order_id}, [tranRef] not defined");
+        paytabs_error_log("Callback failed for Order {$order_id}, [tranRef] not defined", 3);
 
         fn_order_placement_routines('route', $order_id);
         return;
@@ -162,7 +164,7 @@ function paymentComplete()
     $orderId = $verify_response->cart_id;
 
     if ($orderId != $order_id) {
-        paytabs_error_log("Callback failed for Order {$order_id}, Order mismatch [{$_logVerify}]");
+        paytabs_error_log("Callback failed for Order {$order_id}, Order mismatch [{$_logVerify}]", 3);
         return;
     }
 
@@ -177,7 +179,7 @@ function paymentComplete()
             fn_finish_payment($orderId, $pp_response, true);
         }
     } else {
-        paytabs_error_log("Callback failed for Order {$orderId}, response [{$_logVerify}]");
+        paytabs_error_log("Callback failed for Order {$orderId}, response [{$_logVerify}]", 2);
 
         //show the error message
 
