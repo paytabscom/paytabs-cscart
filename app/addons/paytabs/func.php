@@ -100,7 +100,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
         ->set02Transaction(PaytabsEnum::TRAN_TYPE_REFUND, PaytabsEnum::TRAN_CLASS_ECOM)
         ->set03Cart($order_id, $currency, $amount, $reason)
         ->set30TransactionInfo($transaction_id)
-        ->set99PluginInfo('cs-cart', "", "1");
+        ->set99PluginInfo('cs-cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
     $values = $pt_refundHolder->pt_build();
     $db = Tygh::$app['db'];
     $payment_id = $db->getField("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
