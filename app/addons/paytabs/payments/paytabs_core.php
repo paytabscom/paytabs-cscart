@@ -7,10 +7,12 @@
  */
 
 define('PAYTABS_SDK_VERSION', '2.11.3');
-
+define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
 define('PAYTABS_DEBUG_FILE_NAME', 'debug_paytabs.log');
+define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 define('PAYTABS_DEBUG_SEVERITY', ['Info', 'Warning', 'Error']);
 define('PAYTABS_PREFIX', 'PayTabs');
+fn_define('IFRAME_PAYMENT_NOTIFICATION_TIMEOUT', 40);
 
 
 abstract class PaytabsHelper
