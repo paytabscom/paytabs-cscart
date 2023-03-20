@@ -34,7 +34,15 @@
         </select>
     </div>
 </div>
-
+<div class="control-group">
+    <label class="control-label" for="iframe_mode">{__("iframe_mode")}:</label>
+    <div class="controls">
+        <select name="payment_data[processor_params][iframe_mode]" id="iframe_mode">
+            <option value="N" {if $processor_params.iframe_mode == 'N'}selected="selected"{/if}>{__("disabled")}</option>
+            <option value="Y" {if $processor_params.iframe_mode == 'Y'}selected="selected"{/if}>{__("enabled")}</option>
+        </select>
+    </div>
+</div>
 <div class="control-group">
     <label class="control-label" for="order_status_after_payment">Order Status After Payment:</label>
     <div class="controls">

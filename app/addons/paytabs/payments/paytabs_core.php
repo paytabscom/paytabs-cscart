@@ -15,6 +15,14 @@ define('PAYTABS_PREFIX', 'PayTabs');
 fn_define('IFRAME_PAYMENT_NOTIFICATION_TIMEOUT', 40);
 
 
+function paytabs_error_log($message, $severity=1)
+{
+
+    $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
+    $_prefix = date('c') . " PayTabs.{$severity_str}: ";
+    error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
+}
+
 abstract class PaytabsHelper
 {
     static function paymentType($key)

@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9aac3f5b-9342-4cf4-ab04-85de2227368d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/app/addons/paytabs/func.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/addons/paytabs/func.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/addons/paytabs/init.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/addons/paytabs/init.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/addons/paytabs/payments/paytabs.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/addons/paytabs/payments/paytabs.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/addons/paytabs/payments/paytabs_core.php" beforeDir="false" afterPath="$PROJECT_DIR$/app/addons/paytabs/payments/paytabs_core.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/design/backend/templates/views/payments/components/cc_processors/paytabs.tpl" beforeDir="false" afterPath="$PROJECT_DIR$/design/backend/templates/views/payments/components/cc_processors/paytabs.tpl" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -61,7 +60,7 @@
       <workItem from="1678694758872" duration="3899000" />
       <workItem from="1678785482175" duration="928000" />
       <workItem from="1678889784598" duration="19342000" />
-      <workItem from="1679310867700" duration="956000" />
+      <workItem from="1679310867700" duration="4382000" />
     </task>
     <servers />
   </component>
