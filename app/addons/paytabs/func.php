@@ -118,7 +118,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     $success = $refundRes->success;
     $message = $refundRes->message;
     $pending_success = $refundRes->pending_success;
-    Tygh::$app['db']->query("UPDATE ?:rma_returns SET comment = ?s WHERE return_id = ?i", $message, $return_id);
+    Tygh::$app['db']->query("UPDATE ?:rma_returns SET comment = CONCAT(comment,'-', ?s ) WHERE return_id = ?i", $message, $return_id);
 
     PaytabsHelper::log("Refund request done,tran_ref {$tran_ref} ,  payment_id {$payment_id} ,  Order {$order_id} - {$success} {$message} {$tran_ref}", 1);
 
