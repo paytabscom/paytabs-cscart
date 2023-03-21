@@ -71,7 +71,7 @@ function fn_is_paytabs_processor($processor_id = 0)
     return (bool)db_get_field("SELECT 1 FROM ?:payment_processors WHERE processor_id = ?i AND addon = ?s", $processor_id, 'paytabs');
 }
 
-function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'Full')
+function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'Full',$return_id)
 {
 
     $currency = $order_info["secondary_currency"];
@@ -79,14 +79,17 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     $transaction_id = $order_info["payment_info"]["transaction_id"];
 
     if (!$order_id) {
+        fn_set_notification('E', __('error'), "Missing order number!");
         return false;
     }
 
     if (!$amount) {
+        fn_set_notification('E', __('error'), "Missing amount!");
         return false;
     }
 
     if (!$transaction_id) {
+        fn_set_notification('E', __('error'), "Missing Transaction ID !");
         return false;
     }
 
@@ -115,6 +118,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     $success = $refundRes->success;
     $message = $refundRes->message;
     $pending_success = $refundRes->pending_success;
+    Tygh::$app['db']->query("UPDATE ?:rma_returns SET comment = ?s WHERE return_id = ?i", $message, $return_id);
 
     PaytabsHelper::log("Refund request done,tran_ref {$tran_ref} ,  payment_id {$payment_id} ,  Order {$order_id} - {$success} {$message} {$tran_ref}", 1);
 
@@ -123,6 +127,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     } else if ($pending_success) {
         return $tran_ref;
     } else {
+        fn_set_notification('E', __('error'), $message);
         return false;
     }
 }
@@ -163,20 +168,21 @@ function fn_paytabs_rma_update_details_post(&$data, &$show_confirmation_page, &$
                     $refund_type = 'Full';
                 }
 
-                $result = fn_process_refund($order_info, $amount, '', $refund_type);
+                $result = fn_process_refund($order_info, $amount, '', $refund_type,$change_return_status['return_id']);
                 if ($result) {
                     $extra = empty($return_data['extra']) ? array() : unserialize($return_data['extra']);
                     $extra['paytabs_refund_transaction_id'] = $result;
                     Tygh::$app['db']->query("UPDATE ?:rma_returns SET extra = ?s WHERE return_id = ?i", serialize($extra), $change_return_status['return_id']);
-                    fn_set_notification('N', __('notice'), __('Refund Done Successfully'));
+                    fn_set_notification('N', __('notice'), 'Refund Done Successfully');
                 } else {
-                    fn_set_notification('N', __('notice'), __('Failed To Refund Try Again Later!'));
+                    Tygh::$app['db']->query("UPDATE ?:rma_returns SET status = ?s WHERE return_id = ?i", "R", $change_return_status['return_id']);
+                    fn_set_notification('E', __('error'), 'Failed To Refund Try Again Later!');
                 }
             } else {
-                fn_set_notification('N', __('notice'), __('This order has been refunded before! '));
+                fn_set_notification('E', __('error'), 'This order has been refunded before! ');
             }
         } else {
-            fn_set_notification('N', __('notice'), __('You didn\'t change the status! '));
+            fn_set_notification('E', __('error'), 'You didn\'t change the status! ');
         }
     }
 }
