@@ -136,8 +136,6 @@ function paymentComplete($mode)
 
 function fn_callback()
 {
-
-
     $response_data = PaytabsHelper::read_ipn_response();
 
     if (!$response_data) {
@@ -151,10 +149,6 @@ function fn_callback()
     }
     if (!$order_id) {
         return;
-    }
-
-    if (!fn_check_payment_script('paytabs.php', $order_id)) {
-        die();
     }
 
     $session_id = isset($response_data->user_defined->udf1) ? ($response_data->user_defined->udf1) : false;
@@ -171,6 +165,10 @@ function fn_callback()
             paytabs_error_log("iFrame order {$order_id} canceled", 3);
             return;
         }
+    }
+
+    if (!fn_check_payment_script('paytabs.php', $order_id)) {
+        die();
     }
 
     $payment_id = db_get_field("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);

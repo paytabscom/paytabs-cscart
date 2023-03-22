@@ -54,8 +54,6 @@ function pt_remove_records()
     $db->query('DELETE FROM ?:payment_processors WHERE processor_id = ?i', $processor_id);
     $db->query('DELETE FROM ?:payments WHERE processor_id = ?i', $processor_id);
     $db->query("DELETE FROM ?:payment_descriptions WHERE payment_id IN (SELECT payment_id FROM ?:payments WHERE processor_id = ?i)", $processor_id);
-
-
 }
 
 
@@ -71,7 +69,7 @@ function fn_is_paytabs_processor($processor_id = 0)
     return (bool)db_get_field("SELECT 1 FROM ?:payment_processors WHERE processor_id = ?i AND addon = ?s", $processor_id, 'paytabs');
 }
 
-function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'Full',$return_id)
+function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'Full', $return_id)
 {
 
     $currency = $order_info["secondary_currency"];
@@ -103,8 +101,10 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
         ->set02Transaction(PaytabsEnum::TRAN_TYPE_REFUND, PaytabsEnum::TRAN_CLASS_ECOM)
         ->set03Cart($order_id, $currency, $amount, $reason)
         ->set30TransactionInfo($transaction_id)
-        ->set99PluginInfo('cs-cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
+        ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
+
     $values = $pt_refundHolder->pt_build();
+
     $db = Tygh::$app['db'];
     $payment_id = $db->getField("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
     $processor_data = fn_get_payment_method_data($payment_id);
@@ -112,15 +112,18 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     $endpoint = $paytabs_admin['endpoint'];
     $profile_id = intval($paytabs_admin['profile_id']);
     $serverKey = $paytabs_admin['server_key'];
+
     $paytabsApi = PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
     $refundRes = $paytabsApi->request_followup($values);
+
     $tran_ref = @$refundRes->tran_ref;
     $success = $refundRes->success;
     $message = $refundRes->message;
     $pending_success = $refundRes->pending_success;
-    Tygh::$app['db']->query("UPDATE ?:rma_returns SET comment = CONCAT(comment,'-', ?s ) WHERE return_id = ?i", $message, $return_id);
 
-    PaytabsHelper::log("Refund request done,tran_ref {$tran_ref} ,  payment_id {$payment_id} ,  Order {$order_id} - {$success} {$message} {$tran_ref}", 1);
+    $db->query("UPDATE ?:rma_returns SET comment = CONCAT(comment,'-', ?s ) WHERE return_id = ?i", $message, $return_id);
+
+    PaytabsHelper::log("Refund request Done, Tran {$tran_ref}, payment_id {$payment_id}, Order {$order_id} - {$success} {$message}", 1);
 
     if ($success) {
         return $tran_ref;
@@ -136,13 +139,15 @@ function fn_paytabs_rma_update_details_post(&$data, &$show_confirmation_page, &$
 {
     $change_return_status = $data['change_return_status'];
     if (($show_confirmation == false ||
-            ($show_confirmation == true && $confirmed == 'Y')) && $is_refund == 'Y') {
+        ($show_confirmation == true && $confirmed == 'Y')) && $is_refund == 'Y') {
         $order_info = fn_get_order_info($change_return_status['order_id']);
         $amount = 0;
         $st_inv = fn_get_statuses(STATUSES_RETURN);
 
-        if ($change_return_status['status_to'] != $change_return_status['status_from'] &&
-            $st_inv[$change_return_status['status_to']]['params']['inventory'] != 'D') {
+        if (
+            $change_return_status['status_to'] != $change_return_status['status_from'] &&
+            $st_inv[$change_return_status['status_to']]['params']['inventory'] != 'D'
+        ) {
 
             if (!empty($order_info['payment_info']['transaction_id']) && !fn_is_paytabs_refund_performed($change_return_status['return_id'])) {
                 $return_data = fn_get_return_info($change_return_status['return_id']);
@@ -168,7 +173,7 @@ function fn_paytabs_rma_update_details_post(&$data, &$show_confirmation_page, &$
                     $refund_type = 'Full';
                 }
 
-                $result = fn_process_refund($order_info, $amount, '', $refund_type,$change_return_status['return_id']);
+                $result = fn_process_refund($order_info, $amount, '', $refund_type, $change_return_status['return_id']);
                 if ($result) {
                     $extra = empty($return_data['extra']) ? array() : unserialize($return_data['extra']);
                     $extra['paytabs_refund_transaction_id'] = $result;

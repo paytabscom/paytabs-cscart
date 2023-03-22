@@ -38,26 +38,50 @@ This happens sometimes when a previous version exists.
 
 ---
 
-### Note
+## Refund feature
 
-Clear cache from `var\cache\templates\backend` before reinstalling the plugin.
+### Enable Refund
+
+Go to `Add-ons` and active `RMA Add-on`.
+
+Docs: <https://docs.cs-cart.com/latest/user_guide/addons/rma/index.html>
+
+
+#### Store admin notes
+
+Make sure that return feature is enabled for all products *(Enabled by default)*
+
+1. Navigate to: `CS-Cart admin panel >> Products >> Products >> open any product`
+2. Open `Add-ons` tab
+3. Double check **RMA** section, `Returnable` checkbox
+
+##### Manage the Refund requests
+
+1. Navigate to `CS-Cart admin panel >> Orders >> Return Requests`
+2. Select the request
+3. Open the `Actions` tab
+4. Set the new status (Approved or Completed)
+5. Save
+
+
+#### Customer steps
+
+To request a Refund:
+
+1. Navigate to the order details page
+2. Click on `Request a replacement or a refund`
+3. Select `Refund`, selecte the products & quantities, add any comments
+4. Click `Return`
+
+***Notes:***
+
+1. Order status should be `Completed` to allow **Return** requests
 
 ---
 
 ### Note
 
-To Active refund/returns features Go to `Add-ons` and active `RMA Add-on` 
-then the user can make `return request` for an order by opening the order details and make `return request` and change the status to `replace or refund`
-and the admin can approve this request  
-from `CS-Cart admin panel >> Orders >> Return Requests` open any request and `change status` to `Approved or Completed` .
-
-***Notes:***
-
-1. Make sure that the order status is `Complated` to enable user to make return request
-2. Make sure that return feature is enabled for all products *(Enabled by default ) 
-from `CS-Cart admin panel >> Products >> Products >> open any product >> Add-ons  and check  RMA Returnable checkbox `
-
-
+Clear cache from `var\cache\templates\backend` before reinstalling the plugin.
 
 ---
 
