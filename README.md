@@ -44,6 +44,23 @@ Clear cache from `var\cache\templates\backend` before reinstalling the plugin.
 
 ---
 
+### Note
+
+To Active refund/returns features Go to `Add-ons` and active `RMA Add-on` 
+then the user can make `return request` for an order by opening the order details and make `return request` and change the status to `replace or refund`
+and the admin can approve this request  
+from `CS-Cart admin panel >> Orders >> Return Requests` open any request and `change status` to `Approved or Completed` .
+
+***Notes:***
+
+1. Make sure that the order status is `Complated` to enable user to make return request
+2. Make sure that return feature is enabled for all products *(Enabled by default ) 
+from `CS-Cart admin panel >> Products >> Products >> open any product >> Add-ons  and check  RMA Returnable checkbox `
+
+
+
+---
+
 ## Log Access
 
 ### PayTabs custom log
