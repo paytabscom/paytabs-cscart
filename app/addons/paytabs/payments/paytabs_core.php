@@ -1,5 +1,17 @@
 <?php
 
+define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
+define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
+fn_define('IFRAME_PAYMENT_NOTIFICATION_TIMEOUT', 40);
+
+function paytabs_error_log($message, $severity = 1)
+{
+    $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
+    $_prefix = date('c') . " PayTabs.{$severity_str}: ";
+    error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
+}
+
+
 /**
  * PayTabs v2 PHP SDK
  * Version: 2.11.3
@@ -7,21 +19,11 @@
  */
 
 define('PAYTABS_SDK_VERSION', '2.11.3');
-define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
+
 define('PAYTABS_DEBUG_FILE_NAME', 'debug_paytabs.log');
-define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 define('PAYTABS_DEBUG_SEVERITY', ['Info', 'Warning', 'Error']);
 define('PAYTABS_PREFIX', 'PayTabs');
-fn_define('IFRAME_PAYMENT_NOTIFICATION_TIMEOUT', 40);
 
-
-function paytabs_error_log($message, $severity=1)
-{
-
-    $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
-    $_prefix = date('c') . " PayTabs.{$severity_str}: ";
-    error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
-}
 
 abstract class PaytabsHelper
 {
