@@ -93,6 +93,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     }
 
     if (empty($reason)) $reason = 'Admin request';
+    else $reason = 'CS-Cart admin: ' . $reason;
 
     require_once(DIR_ROOT . '/app/addons/paytabs/payments/paytabs_core.php');
 

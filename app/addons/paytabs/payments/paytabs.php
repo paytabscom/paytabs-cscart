@@ -27,7 +27,6 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     $callback_url = fn_url("payment_notification.callback?payment=paytabs", AREA, 'current');
     $return_url = fn_url("payment_notification.return?payment=paytabs&iframe_mode=" . $iframe_mode, AREA, 'current');
-    //$callback_url = str_replace('localhost', '7b12-154-178-192-49.eu.ngrok.io', $callback_url);
     $return_url = fn_link_attach($return_url, $session->getName() . '=' . $session->getID());
 
     $total = $order_info['total'];
