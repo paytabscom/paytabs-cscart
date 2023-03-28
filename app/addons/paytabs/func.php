@@ -64,14 +64,15 @@ function fn_is_paytabs_refund_performed($return_id)
     return !empty($return_data['extra']['paytabs_refund_transaction_id']);
 }
 
+
 function fn_is_paytabs_processor($processor_id = 0)
 {
     return (bool)db_get_field("SELECT 1 FROM ?:payment_processors WHERE processor_id = ?i AND addon = ?s", $processor_id, 'paytabs');
 }
 
+
 function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'Full', $return_id)
 {
-
     $currency = $order_info["secondary_currency"];
     $order_id = $order_info["order_id"];
     $transaction_id = $order_info["payment_info"]["transaction_id"];
@@ -91,7 +92,6 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
         return false;
     }
 
-
     if (empty($reason)) $reason = 'Admin request';
 
     require_once(DIR_ROOT . '/app/addons/paytabs/payments/paytabs_core.php');
@@ -108,12 +108,9 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     $db = Tygh::$app['db'];
     $payment_id = $db->getField("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
     $processor_data = fn_get_payment_method_data($payment_id);
-    $paytabs_admin = $processor_data["processor_params"];
-    $endpoint = $paytabs_admin['endpoint'];
-    $profile_id = intval($paytabs_admin['profile_id']);
-    $serverKey = $paytabs_admin['server_key'];
 
-    $paytabsApi = PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
+    $paytabsApi = PaytabsAdapter::getPaytabsApi($processor_data);
+
     $refundRes = $paytabsApi->request_followup($values);
 
     $tran_ref = @$refundRes->tran_ref;
@@ -121,7 +118,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
     $message = $refundRes->message;
     $pending_success = $refundRes->pending_success;
 
-    $db->query("UPDATE ?:rma_returns SET comment = CONCAT(comment,'-', ?s ) WHERE return_id = ?i", $message, $return_id);
+    $db->query("UPDATE ?:rma_returns SET comment = CONCAT(comment, ' - ' , ?s) WHERE return_id = ?i", $message, $return_id);
 
     PaytabsHelper::log("Refund request Done, Tran {$tran_ref}, payment_id {$payment_id}, Order {$order_id} - {$success} {$message}", 1);
 
@@ -134,6 +131,7 @@ function fn_process_refund($order_info, $amount = null, $reason = '', $type = 'F
         return false;
     }
 }
+
 
 function fn_paytabs_rma_update_details_post(&$data, &$show_confirmation_page, &$show_confirmation, &$is_refund, &$_data, &$confirmed)
 {
@@ -173,7 +171,8 @@ function fn_paytabs_rma_update_details_post(&$data, &$show_confirmation_page, &$
                     $refund_type = 'Full';
                 }
 
-                $result = fn_process_refund($order_info, $amount, '', $refund_type, $change_return_status['return_id']);
+                $refund_reason = @$data['comment'];
+                $result = fn_process_refund($order_info, $amount, $refund_reason, $refund_type, $change_return_status['return_id']);
                 if ($result) {
                     $extra = empty($return_data['extra']) ? array() : unserialize($return_data['extra']);
                     $extra['paytabs_refund_transaction_id'] = $result;

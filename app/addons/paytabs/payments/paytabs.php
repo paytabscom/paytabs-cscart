@@ -20,7 +20,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
 
     $hide_shipping = (bool)PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
-    $iframe_mode = (bool)PaytabsAdapter::getConfig($processor_data, 'iframe_mode');
+    $iframe_mode = PaytabsAdapter::getConfig($processor_data, 'iframe_mode') == 'Y';
 
     $session = Tygh::$app['session'];
     $cid = ($session->getID());
@@ -285,7 +285,7 @@ function fn_retrun()
         $payment_id = db_get_field("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
         $processor_data = fn_get_payment_method_data($payment_id);
         $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
-        
+
         // Verify payment
         $verify_response = $paytabs_api->verify_payment($tran_ref);
         $_logVerify = json_encode($verify_response);
@@ -300,29 +300,4 @@ function fn_retrun()
         fn_order_placement_routines('route', $order_id);
     }
     exit;
-}
-
-//
-
-class PaytabsAdapter
-{
-    static function getPaytabsApi($processor_data)
-    {
-        $paytabs_admin = $processor_data["processor_params"];
-
-        $endpoint = $paytabs_admin['endpoint'];
-        $profile_id = intval($paytabs_admin['profile_id']);
-        $serverKey = $paytabs_admin['server_key'];
-
-        return PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
-    }
-
-    static function getConfig($processor_data, $key)
-    {
-        $paytabs_admin = $processor_data["processor_params"];
-
-        $value = $paytabs_admin[$key];
-
-        return $value;
-    }
 }

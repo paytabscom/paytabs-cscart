@@ -1,6 +1,6 @@
 <?php
 
-define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
+define('PAYTABS_PAYPAGE_VERSION', '3.1.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 fn_define('IFRAME_PAYMENT_NOTIFICATION_TIMEOUT', 40);
 
@@ -9,6 +9,29 @@ function paytabs_error_log($message, $severity = 1)
     $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
     $_prefix = date('c') . " PayTabs.{$severity_str}: ";
     error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
+}
+
+class PaytabsAdapter
+{
+    static function getPaytabsApi($processor_data)
+    {
+        $paytabs_admin = $processor_data["processor_params"];
+
+        $endpoint = $paytabs_admin['endpoint'];
+        $profile_id = intval($paytabs_admin['profile_id']);
+        $serverKey = $paytabs_admin['server_key'];
+
+        return PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
+    }
+
+    static function getConfig($processor_data, $key)
+    {
+        $paytabs_admin = $processor_data["processor_params"];
+
+        $value = $paytabs_admin[$key];
+
+        return $value;
+    }
 }
 
 
