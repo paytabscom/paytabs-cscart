@@ -5,7 +5,7 @@
     <div class="controls">
         <select name="payment_data[processor_params][endpoint]" id="endpoint" value="{$processor_params.endpoint}">
             {foreach $endpoints as $k=>$v}
-                <option value="{$k}">{$v}</option>
+            <option value="{$k}">{$v}</option>
             {/foreach}
         </select>
     </div>
@@ -36,6 +36,16 @@
 </div>
 
 <div class="control-group">
+    <label class="control-label" for="iframe_mode">{__("iframe_mode")}:</label>
+    <div class="controls">
+        <select name="payment_data[processor_params][iframe_mode]" id="iframe_mode">
+            <option value="N">{__("disabled")}</option>
+            <option value="Y">{__("enabled")}</option>
+        </select>
+    </div>
+</div>
+
+<div class="control-group">
     <label class="control-label" for="order_status_after_payment">Order Status After Payment:</label>
     <div class="controls">
         <select name="payment_data[processor_params][order_status_after_payment]" id="order_status_after_payment" value="{}">
@@ -55,4 +65,5 @@
     document.getElementById('endpoint').value = '{$processor_params.endpoint}';
     document.getElementById('order_status_after_payment').value = '{$processor_params.order_status_after_payment}';
     document.getElementById('hide_shipping').value = '{$processor_params.hide_shipping}';
+    document.getElementById('iframe_mode').value = '{$processor_params.iframe_mode}';
 </script>

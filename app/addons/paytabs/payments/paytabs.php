@@ -3,42 +3,31 @@
 use Tygh\Http;
 use Tygh\Registry;
 
-define('PAYTABS_PAYPAGE_VERSION', '3.0.0');
-define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
-
 defined('BOOTSTRAP') or die('Access denied');
-
 require_once('paytabs_core.php');
 
-// Return from paytabs spayment server
+
 $payment_completed = defined('PAYMENT_NOTIFICATION');
 
 if ($payment_completed) {
-    paymentComplete();
+    paymentComplete($mode);
 } else {
     paymentPrepare($processor_data, $order_info, $order_id);
 }
-
-
-//
-
-function paytabs_error_log($message, $severity)
-{
-    $severity_str = $severity == 1 ? 'Info' : ($severity == 2 ? 'Warning' : 'Error');
-
-    $_prefix = date('c') . " PayTabs.{$severity_str}: ";
-    error_log($_prefix . $message . PHP_EOL, 3, PAYTABS_DEBUG_FILE);
-}
-
 
 function paymentPrepare($processor_data, $order_info, $order_id)
 {
     $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
 
-    $hide_shipping = (bool) PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
+    $hide_shipping = (bool)PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
+    $iframe_mode = PaytabsAdapter::getConfig($processor_data, 'iframe_mode') == 'Y';
 
-    $return_url = fn_url("payment_notification?payment=paytabs", AREA, 'current');
+    $session = Tygh::$app['session'];
+    $cid = ($session->getID());
 
+    $callback_url = fn_url("payment_notification.callback?payment=paytabs", AREA, 'current');
+    $return_url = fn_url("payment_notification.return?payment=paytabs&iframe_mode=" . $iframe_mode, AREA, 'current');
+    $return_url = fn_link_attach($return_url, $session->getName() . '=' . $session->getID());
 
     $total = $order_info['total'];
 
@@ -47,7 +36,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         return $p['product'] . " ({$p['amount']})";
     }, $products));
 
-    $currency = $order_info["secondary_currency"];
+    $currency = CART_SECONDARY_CURRENCY;
 
     $firstname = $order_info['b_firstname'];
     $lastname = $order_info['b_lastname'];
@@ -100,8 +89,10 @@ function paymentPrepare($processor_data, $order_info, $order_id)
             null
         )
         ->set06HideShipping($hide_shipping)
-        ->set07URLs($return_url, null)
+        ->set07URLs($return_url, $callback_url)
         ->set08Lang($lang_code)
+        ->set09Framed($iframe_mode, "top")
+        ->set50UserDefined($cid, $iframe_mode)
         ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
 
     $post_data = $pt_holder->pt_build();
@@ -112,7 +103,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $message = $paypage->message;
 
     $_logPaypage = json_encode($paypage);
-    paytabs_error_log("Create paypage result: {$_logPaypage}", 1);
+    paytabs_error_log("Create paypage result: sucess ? {$success} message {$message}", 1);
 
     if ($success) {
         $url = $paypage->redirect_url;
@@ -132,95 +123,180 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 /**
  * Weebhook/Callback called by PayTabs's server after completing the payment
  */
-function paymentComplete()
+function paymentComplete($mode)
 {
-    $param_paymentRef = 'tranRef';
-    $order_id = $_POST['cartId'];
+    if ($mode === "return") {
+        fn_retrun();
+    }
+    if ($mode === "callback") {
+        fn_callback();
+    }
+}
 
-    if (!key_exists($param_paymentRef, $_POST)) {
-        //Not post or payment_reference not posted then error
+function fn_callback()
+{
+    $response_data = PaytabsHelper::read_ipn_response();
 
-        paytabs_error_log("Callback failed for Order {$order_id}, [tranRef] not defined", 3);
+    if (!$response_data) {
+        return;
+    }
+    $tran_ref = isset($response_data->tran_ref) ? $response_data->tran_ref : false;
+    $order_id = isset($response_data->cart_id) ? $response_data->cart_id : false;
 
-        fn_order_placement_routines('route', $order_id);
+    if (!$tran_ref) {
+        return;
+    }
+    if (!$order_id) {
         return;
     }
 
+    $session_id = isset($response_data->user_defined->udf1) ? ($response_data->user_defined->udf1) : false;
+    $ifm_mode = isset($response_data->user_defined->udf2) ? ($response_data->user_defined->udf2) : false;
+    //$response_data->payment_result->response_status !=="C"
+
+    paytabs_error_log("session {session: $session_id } iframe: {$ifm_mode}");
+
+    if ($ifm_mode) {
+        if ($session_id) {
+            $order_id = fn_callback_frame($session_id);
+        } else {
+            //on cancellation the user_defined will be null and session_id will be false
+            paytabs_error_log("iFrame order {$order_id} canceled", 3);
+            return;
+        }
+    }
+
+    if (!fn_check_payment_script('paytabs.php', $order_id)) {
+        die();
+    }
 
     $payment_id = db_get_field("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
     $processor_data = fn_get_payment_method_data($payment_id);
+    $paytabsApi = PaytabsAdapter::getPaytabsApi($processor_data);
 
-    $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
+    $result = $paytabsApi->read_response(true);
+    if (!$result) {
+        return;
+    }
+    $success = $result->success;
+    $failed = $result->failed;
+    $is_on_hold = $result->is_on_hold;
+    $is_pending = $result->is_pending;
+    $res_msg = $result->message;
+    $transaction_ref = @$result->transaction_id;
+    $response_code = @$result->response_code;
+
+    $pp_response = [
+        'transaction_id' => $transaction_ref,
+        'reason_text' => $res_msg
+    ];
+
+    if ($success || $is_on_hold || $is_pending) {
+        $pp_response['order_status'] = $processor_data['processor_params']['order_status_after_payment'];
+
+        $pp_response['response_code'] = $response_code;
+
+        paytabs_error_log("Finish payment, Tran {$transaction_ref} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
+    } else {
+        //show the error message
+        $pp_response['order_status'] = 'F';
 
 
-    // Verify payment
+        paytabs_error_log("Failed payment: Order {$order_id}, pp_response " . json_encode($pp_response), 1);
+    }
 
-    $payment_ref = $_POST[$param_paymentRef];
-    $verify_response = $paytabs_api->verify_payment($payment_ref);
-    $_logVerify = json_encode($verify_response);
+    fn_finish_payment($order_id, $pp_response, false);
+    exit;
+    //fn_order_placement_routines('route', $order_id);
+}
 
-    $success = $verify_response->success;
-    $message = $verify_response->message;
-    $orderId = $verify_response->cart_id;
 
-    if ($orderId != $order_id) {
-        paytabs_error_log("Callback failed for Order {$order_id}, Order mismatch [{$_logVerify}]", 3);
+function fn_callback_frame($session_id)
+{
+    $response_data = PaytabsHelper::read_ipn_response();
+    if (!$response_data) {
+        return;
+    }
+    $order_id = isset($response_data->cart_id) ? $response_data->cart_id : false;
+    $order_nonce = $order_id;
+
+    // get cart and auth data from session
+    Tygh::$app['session']->resetID($session_id);
+    $cart = &Tygh::$app['session']['cart'];
+    $auth = &Tygh::$app['session']['auth'];
+
+    paytabs_error_log("iFrame: order_once {$order_id}, Session {$session_id}");
+
+    list($order_id, $process_payment) = fn_place_order($cart, $auth);
+    // store additional order data
+    if (!empty($order_nonce)) {
+        db_query('REPLACE INTO ?:order_data ?m', array(
+            // add payment data
+            array('order_id' => $order_id, 'type' => 'S', 'data' => TIME),
+            // store order nonce
+            array('order_id' => $order_id, 'type' => 'E', 'data' => $order_nonce)
+        ));
+    }
+    paytabs_error_log("iFrame: order_once converted to order_id {$order_id} ");
+    return $order_id;
+}
+
+
+function fn_retrun()
+{
+    // Wait for the Callback response
+    sleep(5);
+
+    $param_paymentRef = 'tranRef';
+    $iframe_mode = filter_input(INPUT_GET, 'iframe_mode', FILTER_VALIDATE_BOOL);
+    $order_id = filter_input(INPUT_POST, 'cartId');
+    $tran_ref = filter_input(INPUT_POST, $param_paymentRef);
+
+    if (!$order_id || !$tran_ref) {
         return;
     }
 
-    $pp_response = array();
+    if ($iframe_mode) {
+        $order_nonce = $order_id;
 
-    if ($success) {
-        $pp_response['reason_text'] = $message;
-        $pp_response['order_status'] = $processor_data['processor_params']['order_status_after_payment'];
-        $pp_response['transaction_id'] = $payment_ref;
+        if (isset($_POST["respStatus"]) && $_POST["respStatus"] === "C") {
+            fn_set_notification('E', 'Error', 'The Payment has been cancelled !');
+            fn_order_placement_routines('checkout_redirect');
+            return;
+        }
 
-        if (fn_check_payment_script('paytabs.php', $orderId)) {
-            fn_finish_payment($orderId, $pp_response, true);
+        $time = $order_id = 0;
+        while ($time++ < IFRAME_PAYMENT_NOTIFICATION_TIMEOUT) {
+            if ($order_id = db_get_field("SELECT order_id FROM ?:order_data WHERE data = ?s AND type = 'E'", $order_nonce)) {
+                break;
+            }
+            sleep(1);
+        }
+        if ($order_id) {
+            // redirect customer
+            fn_order_placement_routines('route', $order_id, false);
+        } else {
+            // payment gateway takes to much time to process payment: show notice
+            fn_set_notification('E', 'Error', 'Payment notification timeout has been exceeded');
+            fn_order_placement_routines('checkout_redirect');
         }
     } else {
-        paytabs_error_log("Callback failed for Order {$orderId}, response [{$_logVerify}]", 2);
+        $payment_id = db_get_field("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
+        $processor_data = fn_get_payment_method_data($payment_id);
+        $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
 
-        //show the error message
+        // Verify payment
+        $verify_response = $paytabs_api->verify_payment($tran_ref);
+        $_logVerify = json_encode($verify_response);
+        paytabs_error_log("Return: {$order_id}, [{$_logVerify}]", 1);
 
-        $pp_response['order_status'] = 'F';
-        $pp_response['reason_text'] = $message;
-
-        if ($payment_result = $verify_response->payment_result) {
-            $pp_response['errorcode'] = $payment_result->response_status;
-            $pp_response['errorName'] = $payment_result->response_code;
+        $orderId = $verify_response->cart_id;
+        if ($orderId != $order_id) {
+            paytabs_error_log("Mis Match Order id {$order_id} , [{$_logVerify}]", 2);
+            return;
         }
 
-        fn_update_order_payment_info($orderId, $pp_response);
-        fn_change_order_status($orderId, $pp_response['order_status'], '', false);
-
-        fn_finish_payment($orderId, $pp_response, false);
+        fn_order_placement_routines('route', $order_id);
     }
-
-    fn_order_placement_routines('route', $orderId);
-}
-
-//
-
-class PaytabsAdapter
-{
-    static function getPaytabsApi($processor_data)
-    {
-        $paytabs_admin = $processor_data["processor_params"];
-
-        $endpoint = $paytabs_admin['endpoint'];
-        $profile_id = intval($paytabs_admin['profile_id']);
-        $serverKey = $paytabs_admin['server_key'];
-
-        return PaytabsApi::getInstance($endpoint, $profile_id, $serverKey);
-    }
-
-    static function getConfig($processor_data, $key)
-    {
-        $paytabs_admin = $processor_data["processor_params"];
-
-        $value = $paytabs_admin[$key];
-
-        return $value;
-    }
+    exit;
 }
