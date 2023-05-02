@@ -191,13 +191,29 @@ function fn_callback()
         'reason_text' => $res_msg
     ];
 
-    if ($success || $is_on_hold || $is_pending) {
+    if ($success) {
         $pp_response['order_status'] = $processor_data['processor_params']['order_status_after_payment'];
 
         $pp_response['response_code'] = $response_code;
+    
+        $old_status = db_get_field("SELECT status FROM ?:orders WHERE order_id = ?i", $order_id);
 
-        paytabs_error_log("Finish payment, Tran {$transaction_ref} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
-    } else {
+        if (!empty($old_status) && $old_status == "N") {
+
+            fn_change_order_status($order_id, $pp_response['order_status'] , '', []);
+            
+        }
+
+        paytabs_error_log("Finish payment, Tran {$transaction_ref} old status {$old_status} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
+
+    }
+    else if ($is_on_hold || $is_pending) {
+        $pp_response['order_status'] = "N";
+
+        $pp_response['response_code'] = $response_code;
+
+        paytabs_error_log("pending payment, Tran {$transaction_ref} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
+    }else {
         //show the error message
         $pp_response['order_status'] = 'F';
 
