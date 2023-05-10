@@ -36,7 +36,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         return $p['product'] . " ({$p['amount']})";
     }, $products));
 
-    $currency = CART_SECONDARY_CURRENCY;
+    $currency = CART_PRIMARY_CURRENCY;
 
     $firstname = $order_info['b_firstname'];
     $lastname = $order_info['b_lastname'];
@@ -102,7 +102,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $success = $paypage->success;
     $message = $paypage->message;
 
-    $_logPaypage = json_encode($paypage);
+    // $_logPaypage = json_encode($paypage);
     paytabs_error_log("Create paypage result: sucess ? {$success} message {$message}", 1);
 
     if ($success) {
@@ -193,30 +193,23 @@ function fn_callback()
 
     if ($success) {
         $pp_response['order_status'] = $processor_data['processor_params']['order_status_after_payment'];
-
         $pp_response['response_code'] = $response_code;
-    
+
         $old_status = db_get_field("SELECT status FROM ?:orders WHERE order_id = ?i", $order_id);
 
         if (!empty($old_status) && $old_status == "N") {
-
-            fn_change_order_status($order_id, $pp_response['order_status'] , '', []);
-            
+            fn_change_order_status($order_id, $pp_response['order_status'], '', []);
         }
 
         paytabs_error_log("Finish payment, Tran {$transaction_ref} old status {$old_status} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
-
-    }
-    else if ($is_on_hold || $is_pending) {
+    } else if ($is_on_hold || $is_pending) {
         $pp_response['order_status'] = "N";
-
         $pp_response['response_code'] = $response_code;
 
         paytabs_error_log("pending payment, Tran {$transaction_ref} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
-    }else {
+    } else {
         //show the error message
         $pp_response['order_status'] = 'F';
-
 
         paytabs_error_log("Failed payment: Order {$order_id}, pp_response " . json_encode($pp_response), 1);
     }
@@ -292,7 +285,7 @@ function fn_retrun()
             // redirect customer
             fn_order_placement_routines('route', $order_id, false);
         } else {
-            // payment gateway takes to much time to process payment: show notice
+            // payment gateway takes too much time to process payment: show notice
             fn_set_notification('E', 'Error', 'Payment notification timeout has been exceeded');
             fn_order_placement_routines('checkout_redirect');
         }
