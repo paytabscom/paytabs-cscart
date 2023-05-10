@@ -2,7 +2,7 @@
 
 <addon scheme="3.0" edition_type="ROOT">
     <id>paytabs</id>
-    <version>3.0.1</version>
+    <version>3.1.1</version>
     <default_language>en</default_language>
     <priority>100</priority>
     <status>active</status>
