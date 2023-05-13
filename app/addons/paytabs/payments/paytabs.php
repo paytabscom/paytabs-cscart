@@ -114,7 +114,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
         fn_finish_payment($order_id, $pp_response, false);
         fn_set_notification('E', __('warning'), $message, true, '');
-        fn_order_placement_routines('route', $order_id, false);
+        //fn_order_placement_routines('route', $order_id, false);
         die;
     }
 }
@@ -135,46 +135,14 @@ function paymentComplete($mode)
 
 function fn_callback()
 {
-    $response_data = PaytabsHelper::read_ipn_response();
 
-    if (!$response_data) {
-        return;
-    }
-    $tran_ref = isset($response_data->tran_ref) ? $response_data->tran_ref : false;
-    $order_id = isset($response_data->cart_id) ? $response_data->cart_id : false;
-
-    if (!$tran_ref) {
-        return;
-    }
-    if (!$order_id) {
-        return;
-    }
-
-    $session_id = isset($response_data->user_defined->udf1) ? ($response_data->user_defined->udf1) : false;
-    $ifm_mode = isset($response_data->user_defined->udf2) ? ($response_data->user_defined->udf2) : false;
-    //$response_data->payment_result->response_status !=="C"
-
-    paytabs_error_log("session {session: $session_id } iframe: {$ifm_mode}");
-
-    if ($ifm_mode) {
-        if ($session_id) {
-            $order_id = fn_callback_frame($session_id);
-        } else {
-            //on cancellation the user_defined will be null and session_id will be false
-            paytabs_error_log("iFrame order {$order_id} canceled", 3);
-            return;
-        }
-    }
-
-    if (!fn_check_payment_script('paytabs.php', $order_id)) {
-        die();
-    }
-
-    $payment_id = db_get_field("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
-    $processor_data = fn_get_payment_method_data($payment_id);
+    $processor_id = db_get_field('SELECT processor_id FROM ?:payment_processors WHERE processor_script = ?s', 'paytabs.php');
+    //$payment_id =db_get_field('SELECT payment_id FROM ?:payments WHERE processor_id = ?s',$processor_id);
+    $processor_params = db_get_field('SELECT processor_params FROM ?:payments WHERE processor_id = ?s', $processor_id);
+    $processor_data["processor_params"] = unserialize($processor_params);
     $paytabsApi = PaytabsAdapter::getPaytabsApi($processor_data);
-
     $result = $paytabsApi->read_response(true);
+
     if (!$result) {
         return;
     }
@@ -185,6 +153,43 @@ function fn_callback()
     $res_msg = $result->message;
     $transaction_ref = @$result->transaction_id;
     $response_code = @$result->response_code;
+    $tran_ref = isset($result->tran_ref) ? $result->tran_ref : false;
+    $order_id = isset($result->cart_id) ? $result->cart_id : false;
+    $session_id = isset($result->user_defined->udf1) ? ($result->user_defined->udf1) : false;
+    $ifm_mode = isset($result->user_defined->udf2) ? ($result->user_defined->udf2) : false;
+    if (!$tran_ref || !$order_id) {
+        return;
+    }
+
+    /*************** in case of coming response to update pending transaction **********************/
+    $order_from_once = db_get_field("SELECT order_id FROM ?:order_data WHERE order_id !=0  AND type = 'E' AND data = ?i", $order_id);
+    $old_status = db_get_field("SELECT status FROM ?:orders WHERE order_id = ?i", $order_from_once);
+
+    if ($old_status === "O" && is_numeric($order_from_once) && !is_numeric($order_id)) {
+        if (!fn_check_payment_script('paytabs.php', $order_from_once)) {
+            throw new Exception("This order {$order_from_once} has not been paid by PayTabs!!");
+        }
+
+        if ($success) {
+            fn_change_order_status($order_from_once, $processor_data['processor_params']['order_status_after_payment']);
+        } else {
+            fn_change_order_status($order_from_once, "F");
+        }
+        paytabs_error_log("status changed,order {$order_from_once} old status " . $old_status . "order_once:{$order_id} , Real order " . $order_from_once." response success {$success},failed {$failed}");
+        exit;
+    }
+    /**********************************************************************************************/
+    if ($ifm_mode) {
+        if ($session_id) {
+            $order_id = fn_callback_frame($session_id);
+        } else {
+            throw new Exception("iFrame order {$order_id} canceled", 3);
+        }
+    }
+
+    if (!fn_check_payment_script('paytabs.php', $order_id)) {
+        throw new Exception("This order {$order_id} has not been paid by PayTabs!");
+    }
 
     $pp_response = [
         'transaction_id' => $transaction_ref,
@@ -194,23 +199,14 @@ function fn_callback()
     if ($success) {
         $pp_response['order_status'] = $processor_data['processor_params']['order_status_after_payment'];
         $pp_response['response_code'] = $response_code;
-
-        $old_status = db_get_field("SELECT status FROM ?:orders WHERE order_id = ?i", $order_id);
-
-        if (!empty($old_status) && $old_status == "N") {
-            fn_change_order_status($order_id, $pp_response['order_status'], '', []);
-        }
-
         paytabs_error_log("Finish payment, Tran {$transaction_ref} old status {$old_status} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
     } else if ($is_on_hold || $is_pending) {
-        $pp_response['order_status'] = "N";
+        $pp_response['order_status'] = "O";
         $pp_response['response_code'] = $response_code;
-
         paytabs_error_log("pending payment, Tran {$transaction_ref} success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
     } else {
         //show the error message
         $pp_response['order_status'] = 'F';
-
         paytabs_error_log("Failed payment: Order {$order_id}, pp_response " . json_encode($pp_response), 1);
     }
 
