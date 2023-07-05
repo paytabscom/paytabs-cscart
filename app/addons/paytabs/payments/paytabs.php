@@ -103,18 +103,19 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $message = $paypage->message;
 
     // $_logPaypage = json_encode($paypage);
-    PaytabsHelper::log("Create paypage result: sucess ? {$success} message {$message}", 1);
+    PaytabsHelper::log("Order {$order_id}, Create paypage result: sucess ? {$success} message {$message}", 1);
 
     if ($success) {
         $url = $paypage->redirect_url;
         fn_create_payment_form($url, [], 'PayTabs server', false, 'get');
     } else {
         // Here Error
-        $pp_response["reason_text"] = $message;
+        // $pp_response["reason_text"] = $message;
 
-        fn_finish_payment($order_id, $pp_response, false);
+        // fn_finish_payment($order_id, $pp_response, false);
         fn_set_notification('E', __('warning'), $message, true, '');
         fn_order_placement_routines('route', $order_id, false);
+
         die;
     }
 }
@@ -189,30 +190,28 @@ function fn_callback()
     $pp_response = [
         'transaction_id' => $transaction_ref,
         'reason_text' => $res_msg,
-        'response_code'=>$response_code
+        'response_code' => $response_code
     ];
 
     if ($success) {
-        /**  Manipulation handling */
-        $order_info = fn_get_order_info($order_id);
-        if ($result->cart_amount != $order_info["total"]) {
+
+        if (!_validate_amount($order_id, $result)) {
             $pp_response['response_code'] = 601;
-            $pp_response['response_msg'] = "Warning: {$result->cart_amount}{$result->tran_currency}, Expected {$order_info["total"]} 
-            {$order_info["secondary_currency"]}";
-            PaytabsHelper::log("Manipulation issues orderID#{$order_id} {$result->cart_amount}{$result->tran_currency}, Expected {$order_info["total"]} 
-            {$order_info["secondary_currency"]}", 1);
+            $pp_response['response_msg'] = "Order {$order_id}, Transaction/Order amounts are different, check the log";
+
             fn_finish_payment($order_id, $pp_response, false);
             exit;
         }
-        /** end manipulation */
+
         $pp_response['order_status'] = $processor_data['processor_params']['order_status_after_payment'];
+
         fn_change_order_status($order_id, $processor_data['processor_params']['order_status_after_payment']);
         fn_finish_payment($order_id, $pp_response, false);
     } else if ($is_on_hold || $is_pending) {
-        fn_change_order_status($order_id,"O");
-
+        fn_change_order_status($order_id, "O");
     } else {
-        fn_change_order_status($order_id,"F");
+        // fn_change_order_status($order_id, "F");
+        $pp_response['order_status'] = 'F';
         fn_finish_payment($order_id, $pp_response, false);
     }
 
@@ -220,6 +219,22 @@ function fn_callback()
 
     exit;
     //fn_order_placement_routines('route', $order_id);
+}
+
+function _validate_amount($order_id, $trx)
+{
+    $order = fn_get_order_info($order_id);
+
+    $same_payment =
+        strcasecmp($order['secondary_currency'], $trx->cart_currency) == 0
+        && $order['total'] == $trx->cart_amount;
+
+    if (!$same_payment) {
+        PaytabsHelper::log("Order {$order_id}, Expected ({$order['total']} {$order['secondary_currency']}), Received {$trx->cart_amount} {$trx->tran_currency}", 2);
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -262,6 +277,7 @@ function fn_retrun()
     $iframe_mode = filter_input(INPUT_GET, 'iframe_mode', FILTER_VALIDATE_BOOL);
     $order_id = filter_input(INPUT_POST, 'cartId');
     $tran_ref = filter_input(INPUT_POST, $param_paymentRef);
+
     if (!$order_id || !$tran_ref) {
         return;
     }
@@ -289,21 +305,6 @@ function fn_retrun()
             fn_order_placement_routines('checkout_redirect');
         }
     } else {
-        $payment_id = db_get_field("SELECT payment_id FROM ?:orders WHERE order_id = ?i", $order_id);
-        $processor_data = fn_get_payment_method_data($payment_id);
-        $paytabs_api = PaytabsAdapter::getPaytabsApi($processor_data);
-
-        // Verify payment
-        $verify_response = $paytabs_api->verify_payment($tran_ref);
-        $_logVerify = json_encode($verify_response);
-        PaytabsHelper::log("Return: {$order_id}, [{$_logVerify}]", 1);
-
-        $orderId = $verify_response->cart_id;
-        if ($orderId != $order_id) {
-            PaytabsHelper::log("Mis Match Order id {$order_id} , [{$_logVerify}]", 2);
-            return;
-        }
-
         fn_order_placement_routines('route', $order_id);
     }
     exit;
