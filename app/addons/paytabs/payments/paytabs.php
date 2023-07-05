@@ -109,13 +109,12 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         $url = $paypage->redirect_url;
         fn_create_payment_form($url, [], 'PayTabs server', false, 'get');
     } else {
-        // Here Error
-        // $pp_response["reason_text"] = $message;
-
-        // fn_finish_payment($order_id, $pp_response, false);
-        fn_set_notification('E', __('warning'), $message, true, '');
-        fn_order_placement_routines('route', $order_id, false);
-
+        if ($iframe_mode) {
+            echo $message;
+        } else {
+            fn_set_notification('E', __('warning'), $message, true, '');
+            fn_order_placement_routines('route', $order_id, false);
+        }
         die;
     }
 }
