@@ -757,6 +757,14 @@ class PaytabsRequestHolder extends PaytabsBasicHolder
      */
     private $framed;
 
+    /**
+     * config_id
+     */
+    private $config_id;
+    
+    //
+    private $alt_currency;
+
     //
 
     /**
@@ -769,7 +777,9 @@ class PaytabsRequestHolder extends PaytabsBasicHolder
         $this->pt_merges(
             $all,
             $this->hide_shipping,
-            $this->framed
+            $this->framed,
+            $this->config_id,
+            $this->alt_currency
         );
 
         return $all;
@@ -795,6 +805,31 @@ class PaytabsRequestHolder extends PaytabsBasicHolder
             'framed_return_top' => $redirect_target == 'top'
         ];
 
+        return $this;
+    }
+
+    public function set11ThemeConfigId($config_id)
+    {
+        $config_id = (int) trim($config_id);
+
+        if (isset($config_id) && (is_int($config_id) && $config_id > 0)) {
+            $this->config_id = [
+                'config_id' => $config_id
+            ];
+        }
+
+        return $this;
+    }
+
+    public function set12AltCurrency($alt_currency)
+    {
+        $alt_currency = trim($alt_currency);
+        
+        if(isset($alt_currency) && !empty($alt_currency)){
+            $this->alt_currency = [
+                'alt_currency' => $alt_currency
+            ];
+        }
         return $this;
     }
 }

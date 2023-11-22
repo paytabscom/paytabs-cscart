@@ -21,6 +21,9 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     $hide_shipping = (bool)PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
     $iframe_mode = PaytabsAdapter::getConfig($processor_data, 'iframe_mode') == 'Y';
+    
+    $enable_alt_currency = PaytabsAdapter::getConfig($processor_data, 'enable_alt_currency') == 'yes';
+    $alt_currency = PaytabsAdapter::getConfig($processor_data, 'alt_currency');
 
     $session = Tygh::$app['session'];
     $cid = ($session->getID());
@@ -91,8 +94,13 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         ->set06HideShipping($hide_shipping)
         ->set07URLs($return_url, $callback_url)
         ->set08Lang($lang_code)
-        ->set09Framed($iframe_mode, "top")
-        ->set50UserDefined($cid, $iframe_mode)
+        ->set09Framed($iframe_mode, "top");
+        
+        if($enable_alt_currency){
+            $pt_holder->set12AltCurrency(_get_alt_currency($alt_currency));
+        }
+
+        $pt_holder->set50UserDefined($cid, $iframe_mode)
         ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
 
     $post_data = $pt_holder->pt_build();
@@ -307,4 +315,13 @@ function fn_retrun()
         fn_order_placement_routines('route', $order_id);
     }
     exit;
+}
+
+function _get_alt_currency($alt_currency)
+{
+    if(isset($alt_currency) && !empty($alt_currency)){
+        return $alt_currency;
+    }
+
+    return $_SESSION['settings']['secondary_currencyC']['value'];
 }

@@ -61,6 +61,23 @@
     </div>
 </div>
 
+<div class="control-group">
+    <label class="control-label" for="enable_alt_currency">Enable Alt Currency:</label>
+    <div class="controls">
+        <select name="payment_data[processor_params][enable_alt_currency]" id="enable_alt_currency">
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+        </select>
+    </div>
+</div>
+
+<div class="control-group">
+    <label class="control-label" for="alt_currency">Alt Currency:</label>
+    <div class="controls">
+        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" size="6">
+    </div>
+</div>
+
 <script>
     document.getElementById('endpoint').value = '{$processor_params.endpoint}';
     document.getElementById('order_status_after_payment').value = '{$processor_params.order_status_after_payment}';
