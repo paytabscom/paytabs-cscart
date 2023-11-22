@@ -62,6 +62,13 @@
 </div>
 
 <div class="control-group">
+    <label class="control-label" for="config_id">Config id (Theme id):</label>
+    <div class="controls">
+        <input type="text" name="payment_data[processor_params][config_id]" id="config_id" value="{$processor_params.config_id}" size="12" >
+    </div>
+</div>
+
+<div class="control-group">
     <label class="control-label" for="enable_alt_currency">Enable Alt Currency:</label>
     <div class="controls">
         <select name="payment_data[processor_params][enable_alt_currency]" id="enable_alt_currency">
@@ -74,7 +81,7 @@
 <div class="control-group">
     <label class="control-label" for="alt_currency">Alt Currency:</label>
     <div class="controls">
-        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" size="6">
+        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" value="{$processor_params.alt_currency}" size="6">
     </div>
 </div>
 
@@ -83,4 +90,7 @@
     document.getElementById('order_status_after_payment').value = '{$processor_params.order_status_after_payment}';
     document.getElementById('hide_shipping').value = '{$processor_params.hide_shipping}';
     document.getElementById('iframe_mode').value = '{$processor_params.iframe_mode}';
+    document.getElementById('config_id').value = '{$processor_params.config_id}';
+    document.getElementById('enable_alt_currency').value = '{$processor_params.enable_alt_currency}';
+    document.getElementById('alt_currency').value = '{$processor_params.alt_currency}';
 </script>

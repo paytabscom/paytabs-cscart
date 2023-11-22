@@ -22,6 +22,9 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $hide_shipping = (bool)PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
     $iframe_mode = PaytabsAdapter::getConfig($processor_data, 'iframe_mode') == 'Y';
     
+    // theme config
+    $config_id = PaytabsAdapter::getConfig($processor_data, 'config_id') ?? "";
+
     $enable_alt_currency = PaytabsAdapter::getConfig($processor_data, 'enable_alt_currency') == 'yes';
     $alt_currency = PaytabsAdapter::getConfig($processor_data, 'alt_currency');
 
@@ -94,8 +97,9 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         ->set06HideShipping($hide_shipping)
         ->set07URLs($return_url, $callback_url)
         ->set08Lang($lang_code)
-        ->set09Framed($iframe_mode, "top");
-        
+        ->set09Framed($iframe_mode, "top")
+        ->set11ThemeConfigId($config_id);
+
         if($enable_alt_currency){
             $pt_holder->set12AltCurrency(_get_alt_currency($alt_currency));
         }
