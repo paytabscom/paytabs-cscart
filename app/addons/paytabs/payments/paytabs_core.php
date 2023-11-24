@@ -1,6 +1,6 @@
 <?php
 
-define('PAYTABS_PAYPAGE_VERSION', '3.1.2');
+define('PAYTABS_PAYPAGE_VERSION', '3.2.0');
 define('PAYTABS_DEBUG_FILE', DIR_ROOT . "/var/debug_paytabs.log");
 fn_define('IFRAME_PAYMENT_NOTIFICATION_TIMEOUT', 40);
 
