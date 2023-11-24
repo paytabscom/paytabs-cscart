@@ -25,6 +25,9 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $alt_currency_enable = (bool)PaytabsAdapter::getConfig($processor_data, 'alt_currency_enable');
     $alt_currency = PaytabsAdapter::getConfig($processor_data, 'alt_currency');
 
+    // theme config
+    $config_id = PaytabsAdapter::getConfig($processor_data, 'config_id') ?? "";
+
     $session = Tygh::$app['session'];
     $cid = ($session->getID());
 
@@ -95,6 +98,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         ->set07URLs($return_url, $callback_url)
         ->set08Lang($lang_code)
         ->set09Framed($iframe_mode, "top")
+        ->set11ThemeConfigId($config_id)
         ->set50UserDefined($cid, $iframe_mode)
         ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
 
