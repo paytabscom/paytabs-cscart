@@ -834,8 +834,8 @@ class PaytabsRequestHolder extends PaytabsBasicHolder
     public function set12AltCurrency($alt_currency)
     {
         $alt_currency = trim($alt_currency);
-        
-        if(isset($alt_currency) && !empty($alt_currency)){
+
+        if (isset($alt_currency) && !empty($alt_currency)) {
             $this->alt_currency = [
                 'alt_currency' => $alt_currency
             ];

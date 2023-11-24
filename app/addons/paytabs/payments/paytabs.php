@@ -94,14 +94,13 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         ->set06HideShipping($hide_shipping)
         ->set07URLs($return_url, $callback_url)
         ->set08Lang($lang_code)
-        ->set09Framed($iframe_mode, "top");
+        ->set09Framed($iframe_mode, "top")
+        ->set50UserDefined($cid, $iframe_mode)
+        ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
 
     if ($alt_currency_enable) {
         $pt_holder->set12AltCurrency(_get_alt_currency($alt_currency));
     }
-
-    $pt_holder->set50UserDefined($cid, $iframe_mode)
-        ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
 
     $post_data = $pt_holder->pt_build();
 
