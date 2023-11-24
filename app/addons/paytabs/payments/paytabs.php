@@ -233,7 +233,8 @@ function _validate_amount($order_id, $trx)
     $order = fn_get_order_info($order_id);
 
     $same_payment =
-        strcasecmp($order['secondary_currency'], $trx->cart_currency) == 0
+        // strcasecmp($order['secondary_currency'], $trx->cart_currency) == 0
+        strcasecmp(CART_PRIMARY_CURRENCY, $trx->cart_currency) == 0
         && $order['total'] == $trx->cart_amount;
 
     if (!$same_payment) {
