@@ -64,24 +64,26 @@
 <div class="control-group">
     <label class="control-label" for="config_id">Config id (Theme id):</label>
     <div class="controls">
-        <input type="text" name="payment_data[processor_params][config_id]" id="config_id" value="{$processor_params.config_id}" size="12">
+        <input type="text" name="payment_data[processor_params][config_id]" id="config_id" value="{$processor_params.config_id}" size="12" aria-describedby="configIdHelp">
+        <div id="configIdHelp" class="form-text">Config id of the theme/payment page (if any) you want to open, You may find it in <code>Dashboard > Developers > PayPage Settings (Themes)</code></div>
     </div>
 </div>
 
 <div class="control-group">
     <label class="control-label" for="alt_currency_enable">Enable Alternative currency:</label>
     <div class="controls">
-        <select name="payment_data[processor_params][alt_currency_enable]" id="alt_currency_enable" onchange="alt_currency_changed()">
+        <select name="payment_data[processor_params][alt_currency_enable]" id="alt_currency_enable" onchange="alt_currency_changed()" aria-describedby="altCurrencyHelp">
             <option value="1">Yes</option>
             <option value="0">No</option>
         </select>
+        <div id="altCurrencyHelp" class="form-text">Alternative currency equivalent in the payment page.</div>
     </div>
 </div>
 
 <div class="control-group" id="pnl_alt_currency">
     <label class="control-label" for="alt_currency">Alternative currency:</label>
     <div class="controls">
-        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" size="6">
+        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" size="6" placeholder="USD">
     </div>
 </div>
 
