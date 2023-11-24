@@ -21,12 +21,12 @@ function paymentPrepare($processor_data, $order_info, $order_id)
 
     $hide_shipping = (bool)PaytabsAdapter::getConfig($processor_data, 'hide_shipping');
     $iframe_mode = PaytabsAdapter::getConfig($processor_data, 'iframe_mode') == 'Y';
-    
+
+    $alt_currency_enable = (bool)PaytabsAdapter::getConfig($processor_data, 'alt_currency_enable');
+    $alt_currency = PaytabsAdapter::getConfig($processor_data, 'alt_currency');
+
     // theme config
     $config_id = PaytabsAdapter::getConfig($processor_data, 'config_id') ?? "";
-
-    $enable_alt_currency = PaytabsAdapter::getConfig($processor_data, 'enable_alt_currency') == 'yes';
-    $alt_currency = PaytabsAdapter::getConfig($processor_data, 'alt_currency');
 
     $session = Tygh::$app['session'];
     $cid = ($session->getID());
@@ -100,12 +100,12 @@ function paymentPrepare($processor_data, $order_info, $order_id)
         ->set09Framed($iframe_mode, "top")
         ->set11ThemeConfigId($config_id);
 
-        if($enable_alt_currency){
-            $pt_holder->set12AltCurrency(_get_alt_currency($alt_currency));
-        }
-
-        $pt_holder->set50UserDefined($cid, $iframe_mode)
+    $pt_holder->set50UserDefined($cid, $iframe_mode)
         ->set99PluginInfo('CS-Cart', PRODUCT_VERSION, PAYTABS_PAYPAGE_VERSION);
+
+    if ($alt_currency_enable) {
+        $pt_holder->set12AltCurrency(_get_alt_currency($alt_currency));
+    }
 
     $post_data = $pt_holder->pt_build();
 
@@ -237,7 +237,8 @@ function _validate_amount($order_id, $trx)
     $order = fn_get_order_info($order_id);
 
     $same_payment =
-        strcasecmp($order['secondary_currency'], $trx->cart_currency) == 0
+        // strcasecmp($order['secondary_currency'], $trx->cart_currency) == 0
+        strcasecmp(CART_PRIMARY_CURRENCY, $trx->cart_currency) == 0
         && $order['total'] == $trx->cart_amount;
 
     if (!$same_payment) {
@@ -323,7 +324,7 @@ function fn_retrun()
 
 function _get_alt_currency($alt_currency)
 {
-    if(isset($alt_currency) && !empty($alt_currency)){
+    if (isset($alt_currency) && !empty($alt_currency)) {
         return $alt_currency;
     }
 

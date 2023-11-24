@@ -64,24 +64,24 @@
 <div class="control-group">
     <label class="control-label" for="config_id">Config id (Theme id):</label>
     <div class="controls">
-        <input type="text" name="payment_data[processor_params][config_id]" id="config_id" value="{$processor_params.config_id}" size="12" >
+        <input type="text" name="payment_data[processor_params][config_id]" id="config_id" value="{$processor_params.config_id}" size="12">
     </div>
 </div>
 
 <div class="control-group">
-    <label class="control-label" for="enable_alt_currency">Enable Alt Currency:</label>
+    <label class="control-label" for="alt_currency_enable">Enable Alternative currency:</label>
     <div class="controls">
-        <select name="payment_data[processor_params][enable_alt_currency]" id="enable_alt_currency">
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
+        <select name="payment_data[processor_params][alt_currency_enable]" id="alt_currency_enable" onchange="alt_currency_changed()">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
         </select>
     </div>
 </div>
 
-<div class="control-group">
-    <label class="control-label" for="alt_currency">Alt Currency:</label>
+<div class="control-group" id="pnl_alt_currency">
+    <label class="control-label" for="alt_currency">Alternative currency:</label>
     <div class="controls">
-        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" value="{$processor_params.alt_currency}" size="6">
+        <input type="text" name="payment_data[processor_params][alt_currency]" id="alt_currency" size="6">
     </div>
 </div>
 
@@ -91,6 +91,13 @@
     document.getElementById('hide_shipping').value = '{$processor_params.hide_shipping}';
     document.getElementById('iframe_mode').value = '{$processor_params.iframe_mode}';
     document.getElementById('config_id').value = '{$processor_params.config_id}';
-    document.getElementById('enable_alt_currency').value = '{$processor_params.enable_alt_currency}';
+    document.getElementById('alt_currency_enable').value = '{$processor_params.alt_currency_enable}';
     document.getElementById('alt_currency').value = '{$processor_params.alt_currency}';
+
+    function alt_currency_changed() {
+        var enabled = document.getElementById('alt_currency_enable').value == '1';
+        Tygh.$('#pnl_alt_currency').toggle(enabled);
+    }
+
+    alt_currency_changed();
 </script>
