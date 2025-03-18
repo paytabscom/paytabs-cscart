@@ -1494,10 +1494,6 @@ class PaytabsApi
             'title' => 'Iraq',
             'endpoint' => 'https://secure-iraq.paytabs.com/'
         ],
-        'PSE' => [
-            'title' => 'Palestine',
-            'endpoint' => 'https://secure-palestine.paytabs.com/'
-        ],
         'KWT' => [
             'title' => 'Kuwait',
             'endpoint' => 'https://secure-kuwait.paytabs.com/'
