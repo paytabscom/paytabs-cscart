@@ -114,7 +114,7 @@ function paymentPrepare($processor_data, $order_info, $order_id)
     $message = $paypage->message;
 
     // $_logPaypage = json_encode($paypage);
-    PaytabsHelper::log("Order {$order_id}, Create paypage result: sucess ? {$success} message {$message}", 1);
+    PaytabsHelper::log("Order {$order_id}, Create paypage result: success ? {$success} message {$message}", 1);
 
     if ($success) {
         $url = $paypage->redirect_url;
@@ -165,7 +165,7 @@ function fn_callback()
     $ifm_mode = isset($response_data->user_defined->udf2) ? ($response_data->user_defined->udf2) : false;
     //$response_data->payment_result->response_status !=="C"
 
-    PaytabsHelper::log("session {session: $session_id } iframe: {$ifm_mode}");
+    PaytabsHelper::log("Session { $session_id } , iframe: {$ifm_mode}");
 
     if ($ifm_mode) {
         if ($session_id) {
@@ -225,7 +225,7 @@ function fn_callback()
         fn_finish_payment($order_id, $pp_response, false);
     }
 
-    PaytabsHelper::log("Finish payment, Tran {$transaction_ref}  success {$success} holding {$is_on_hold} pending {$is_pending}, Order {$order_id} ", 1);
+    PaytabsHelper::log("Order {$order_id}, Finish payment, Tran {$transaction_ref} Success {$success}, Holding {$is_on_hold}, Pending {$is_pending}", 1);
 
     exit;
     //fn_order_placement_routines('route', $order_id);
